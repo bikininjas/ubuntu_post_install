@@ -1,0 +1,8 @@
+---
+- name: Mettre à jour le cache APT et les paquets
+  apt:
+    update_cache: yes
+    upgrade: dist
+    autoremove: yes
+  tags:
+    - common
