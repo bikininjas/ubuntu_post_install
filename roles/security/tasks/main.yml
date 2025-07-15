@@ -1,0 +1,43 @@
+---
+- name: Changer le port SSH par défaut
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Port 22'
+    line: 'Port {{ ssh_port }}'
+    state: present
+  notify: Restart SSH
+  tags:
+    - security
+
+- name: Installer UFW (Uncomplicated Firewall)
+  apt:
+    name: ufw
+    state: present
+  tags:
+    - security
+
+- name: Autoriser le nouveau port SSH dans UFW
+  ufw:
+    rule: allow
+    port: '{{ ssh_port }}'
+    proto: tcp
+  tags:
+    - security
+
+- name: Autoriser les ports HTTP et HTTPS
+  ufw:
+    rule: allow
+    name: '{{ item }}'
+  loop:
+    - 'http'
+    - 'https'
+  tags:
+    - security
+
+- name: Activer UFW
+  ufw:
+    state: enabled
+    policy: deny
+  tags:
+    - security
+    
