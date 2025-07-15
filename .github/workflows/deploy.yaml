@@ -3,6 +3,8 @@ name: Configure VPS
 # Permet de déclencher le workflow manuellement depuis l'onglet "Actions" de GitHub
 on:
   workflow_dispatch:
+  push:
+  pull_request:
 
 jobs:
   debug-ssh-connection:
