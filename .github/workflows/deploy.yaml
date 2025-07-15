@@ -5,6 +5,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  debug-ssh-connection:
+    name: '0. Debug SSH Connection'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configuration de la clé SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPSZ_SSH_KEY }}
+
+      - name: Tentative de connexion SSH avec logs détaillés
+        run: |
+          # Ajoute l'empreinte du serveur pour éviter la confirmation manuelle
+          ssh-keyscan -p 22 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          
+          # Tente de se connecter avec l'option -v (verbose) pour voir les détails
+          ssh -v ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} -p 22 "echo 'Connexion réussie'"
   # PREMIER JOB : Se connecte sur le port 22 pour changer le port SSH
   change-ssh-port:
     name: '1. Change SSH Port to 10022'
