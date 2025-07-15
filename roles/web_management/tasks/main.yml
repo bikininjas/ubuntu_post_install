@@ -1,0 +1,23 @@
+---
+- name: Installer Cockpit
+  apt:
+    name: cockpit
+    state: present
+  tags:
+    - web_management
+
+- name: S'assurer que Cockpit est actif et démarré
+  service:
+    name: cockpit.socket
+    state: started
+    enabled: yes
+  tags:
+    - web_management
+
+- name: Autoriser Cockpit dans UFW
+  ufw:
+    rule: allow
+    port: '9090' # Port par défaut de Cockpit
+    proto: tcp
+  tags:
+    - web_management
