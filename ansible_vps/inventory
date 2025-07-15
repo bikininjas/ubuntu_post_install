@@ -1,0 +1,2 @@
+[vps]
+votre_ip_vps ansible_user=root
