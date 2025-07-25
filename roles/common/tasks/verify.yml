@@ -1,0 +1,62 @@
+---
+- name: Check that SSH is NOT accessible on port 22
+  shell: |
+    ss -tuln | grep ':22 '
+  register: ssh_port_22
+  ignore_errors: true
+  changed_when: false
+
+- name: Fail if SSH is accessible on port 22
+  fail:
+    msg: "SSH is still accessible on port 22!"
+  when: ssh_port_22.rc == 0
+
+- name: Check that HTTP (80) is open
+  shell: |
+    ss -tuln | grep ':80 '
+  register: http_port
+  changed_when: false
+
+- name: Check that HTTPS (443) is open
+  shell: |
+    ss -tuln | grep ':443 '
+  register: https_port
+  changed_when: false
+
+- name: Check that SSH is open on the configured port
+  shell: |
+    ss -tuln | grep ':{{ ssh_port }} '
+  register: ssh_custom_port
+  changed_when: false
+
+- name: Fail if HTTP or HTTPS are not open
+  fail:
+    msg: "HTTP (80) or HTTPS (443) is not open!"
+  when: http_port.rc != 0 or https_port.rc != 0
+
+- name: Fail if SSH is not open on the configured port
+  fail:
+    msg: "SSH is not open on port {{ ssh_port }}!"
+  when: ssh_custom_port.rc != 0
+
+# Optionally, check for other open ports (e.g., Cockpit 9090)
+- name: Check that Cockpit (9090) is open
+  shell: |
+    ss -tuln | grep ':9090 '
+  register: cockpit_port
+  changed_when: false
+
+- name: Warn if Cockpit (9090) is not open
+  debug:
+    msg: "Cockpit (9090) is not open."
+  when: cockpit_port.rc != 0
+
+# Optionally, list all open ports for review
+- name: List all open ports
+  shell: ss -tuln
+  register: all_ports
+  changed_when: false
+
+- name: Show all open ports
+  debug:
+    var: all_ports.stdout_lines

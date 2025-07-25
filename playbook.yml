@@ -13,9 +13,14 @@
       tags:
         - always
 
+
   roles:
     - role: common
     - role: security
     - role: web_management
     - role: monitoring
     - role: dev_tools
+
+  tasks:
+    - name: Post-setup checks (firewall and open ports)
+      import_tasks: roles/common/tasks/verify.yml
