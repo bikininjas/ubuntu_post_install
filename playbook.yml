@@ -1,8 +1,17 @@
----
+
 - hosts: vps
   become: yes
   vars:
     ssh_port: 2244 # Définissez votre nouveau port SSH ici
+
+  pre_tasks:
+    - name: Update all apt packages before running roles
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoremove: yes
+      tags:
+        - always
 
   roles:
     - role: common

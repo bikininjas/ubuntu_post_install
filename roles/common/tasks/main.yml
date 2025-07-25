@@ -6,3 +6,18 @@
     autoremove: yes
   tags:
     - common
+
+- name: Set timezone to Europe/Paris
+  timezone:
+    name: Europe/Paris
+  tags:
+    - common
+
+- name: Set default system language to English (en_US.UTF-8)
+  lineinfile:
+    path: /etc/default/locale
+    regexp: '^LANG='
+    line: 'LANG="en_US.UTF-8"'
+    create: yes
+  tags:
+    - common

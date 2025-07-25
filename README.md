@@ -36,6 +36,9 @@ Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS
 
 - Ensure you have Ansible installed: `pip install ansible`
 - Run as a user with sudo privileges.
+- The playbook now sets the timezone to Europe/Paris and system language to English (en_US.UTF-8) on all servers (common role).
+- All apt packages are updated before any roles run (pre-task in playbook).
+- Docker repository setup is compatible with Ubuntu 22.04+ (uses signed-by keyring).
 
 - UFW rules for HTTP/HTTPS use port numbers (80, 443) instead of application names because UFW profiles 'http' and 'https' may not exist on all systems.
 

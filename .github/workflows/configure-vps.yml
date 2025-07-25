@@ -4,9 +4,25 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-port-22:
+    name: 'Check if SSH port 22 is reachable'
+    runs-on: ubuntu-latest
+    outputs:
+      port22_open: ${{ steps.check.outputs.port22_open }}
+    steps:
+      - name: Check port 22
+        id: check
+        run: |
+          if nc -z -w5 ${{ secrets.VPS_HOST }} 22; then
+            echo "port22_open=true" >> $GITHUB_OUTPUT
+          else
+            echo "port22_open=false" >> $GITHUB_OUTPUT
+          fi
   change-ssh-port:
     name: '1. Change SSH Port to 10022'
     runs-on: ubuntu-latest
+    needs: check-port-22
+    if: needs.check-port-22.outputs.port22_open == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,7 +53,8 @@ jobs:
   provision-server:
     name: '2. Provision Server on Port 10022'
     runs-on: ubuntu-latest
-    needs: change-ssh-port
+    needs: [check-port-22, change-ssh-port]
+    if: needs.check-port-22.outputs.port22_open == 'false' || always()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -64,3 +81,14 @@ jobs:
           echo "${{ secrets.VPS_HOST }} ansible_user=${{ secrets.VPS_USER }} ansible_port=10022" >> inventory
           ssh-keyscan -p 10022 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
           ansible-playbook -i inventory playbook.yml --skip-tags security
+      - name: Print summary
+        run: |
+          echo "### VPS Configuration Summary"
+          echo "- All roles in playbook.yml: common, security, web_management, monitoring, dev_tools"
+          if [ '${{ needs.check-port-22.outputs.port22_open }}' = 'true' ]; then
+            echo "- SSH port was changed from 22 to 10022 (security role executed)."
+            echo "- Remaining roles (common, web_management, monitoring, dev_tools) were applied on port 10022."
+          else
+            echo "- SSH port 22 was not reachable. Only provisioning on port 10022 was performed."
+            echo "- All roles except security were applied."
+          fi
