@@ -1,0 +1,50 @@
+name: Configure VPS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  change-ssh-port:
+    name: '1. Change SSH Port to 10022'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPSZ_SSH_KEY }}
+
+      - name: Change SSH port with Ansible
+        run: |
+          echo "[vps]" > inventory
+          echo "${{ secrets.VPS_HOST }} ansible_user=${{ secrets.VPS_USER }} ansible_port=22" >> inventory
+          ssh-keyscan -p 22 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ansible-playbook -i inventory playbook.yml --tags security
+
+  provision-server:
+    name: '2. Provision Server on Port 10022'
+    runs-on: ubuntu-latest
+    needs: change-ssh-port
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPSZ_SSH_KEY }}
+
+      - name: Provision server with Ansible
+        run: |
+          echo "[vps]" > inventory
+          echo "${{ secrets.VPS_HOST }} ansible_user=${{ secrets.VPS_USER }} ansible_port=10022" >> inventory
+          ssh-keyscan -p 10022 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ansible-playbook -i inventory playbook.yml --skip-tags security

@@ -40,3 +40,18 @@ Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS
 ---
 
 Maintained by bikininjas
+
+## CI/CD: GitHub Actions Workflow
+
+This repository includes a GitHub Actions workflow to automate VPS configuration using Ansible:
+
+- **Manual trigger**: Go to the "Actions" tab and run the `Configure VPS` workflow.
+- **Two-step process**:
+  1. Changes the SSH port (connects on port 22, runs only security tasks).
+  2. Provisions the server (connects on the new port, runs all other tasks).
+- **Secrets required**:
+  - `VPSZ_SSH_KEY`: Your private SSH key for the VPS.
+  - `VPS_HOST`: The IP or hostname of your VPS.
+  - `VPS_USER`: The SSH username.
+
+See `.github/workflows/configure-vps.yml` for details.
