@@ -24,13 +24,15 @@
   tags:
     - security
 
-- name: Autoriser les ports HTTP et HTTPS
+- name: Autoriser les ports HTTP (80) et HTTPS (443)
+  # Utilisation des numéros de port car les profils UFW 'http' et 'https' peuvent ne pas exister
   ufw:
     rule: allow
-    name: '{{ item }}'
+    port: '{{ item }}'
+    proto: tcp
   loop:
-    - 'http'
-    - 'https'
+    - 80
+    - 443
   tags:
     - security
 

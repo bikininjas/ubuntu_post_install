@@ -37,6 +37,8 @@ Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS
 - Ensure you have Ansible installed: `pip install ansible`
 - Run as a user with sudo privileges.
 
+- UFW rules for HTTP/HTTPS use port numbers (80, 443) instead of application names because UFW profiles 'http' and 'https' may not exist on all systems.
+
 ---
 
 Maintained by bikininjas
