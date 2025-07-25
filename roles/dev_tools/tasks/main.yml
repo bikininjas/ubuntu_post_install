@@ -1,5 +1,6 @@
 ---
 # Tâches pour Git, Go, Node.js, Python
+# NOTE: Les paquets nodejs et npm installés via apt peuvent ne pas être à jour. Pour la dernière version de Node.js, utilisez NodeSource (https://github.com/nodesource/distributions) ou nvm (https://github.com/nvm-sh/nvm).
 - name: Installer les outils de développement (Git, Go, Node.js, Python)
   apt:
     name:
