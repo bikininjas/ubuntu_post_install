@@ -32,7 +32,7 @@
 
 - name: Autoriser les ports HTTP et HTTPS (80/443)
   # Utilisation des numéros de port car les profils UFW 'http' et 'https' peuvent ne pas exister
-  ufw:
+  community.general.ufw:
     rule: allow
     port: '{{ item }}'
     proto: tcp

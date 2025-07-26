@@ -18,7 +18,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Install Ansible community.general collection
         run: ansible-galaxy collection install community.general --force --force
 
