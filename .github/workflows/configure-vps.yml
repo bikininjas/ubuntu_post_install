@@ -23,7 +23,8 @@ jobs:
 
       - name: Run ansible-lint
         uses: ansible/ansible-lint@main
-
+        with:
+          exclude_paths: .github/workflows/configure-vps.yml
 
   check-port-22:
     name: 'Check if SSH port 22 is reachable'
