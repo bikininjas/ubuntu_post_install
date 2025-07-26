@@ -1,4 +1,5 @@
 ---
 # .ansible-lint
 
-exclude_paths: .github/workflows/
+exclude_paths: 
+  - .github/workflows/
