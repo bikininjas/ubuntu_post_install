@@ -25,7 +25,7 @@
     - web_management
 
 - name: Autoriser Cockpit dans UFW
-  ufw:
+  community.general.ufw:
     rule: allow
     port: '9090' # Port par défaut de Cockpit
     proto: tcp

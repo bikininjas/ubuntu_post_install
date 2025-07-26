@@ -1,4 +1,4 @@
 ---
 # Security role variables
 security_packages:
-  - ufw
+  - community.general.ufw
