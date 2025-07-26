@@ -1,0 +1,16 @@
+---
+# List of development tools to install
+# You can edit this list to add/remove packages as needed
+
+dev_tools_packages:
+  - git
+  - golang-go
+  - nodejs
+  - npm
+  - python3
+  - python3-pip
+
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io

@@ -16,10 +16,15 @@
 
   roles:
     - role: common
+      tags: ["common"]
     - role: security
+      tags: ["security"]
     - role: web_management
+      tags: ["web_management"]
     - role: monitoring
+      tags: ["monitoring"]
     - role: dev_tools
+      tags: ["dev_tools"]
 
   tasks:
     - name: Post-setup checks (firewall and open ports)

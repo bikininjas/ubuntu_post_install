@@ -47,13 +47,7 @@
 #   https://github.com/nvm-sh/nvm
 - name: Installer les outils de développement (Git, Go, Node.js, Python)
   ansible.builtin.apt:
-    name:
-      - git
-      - golang-go
-      - nodejs
-      - npm
-      - python3
-      - python3-pip
+    name: "{{ dev_tools_packages }}"
     state: present
   tags:
     - dev_tools
@@ -80,10 +74,7 @@
 
 - name: Installer Docker Engine
   ansible.builtin.apt:
-    name:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
+    name: "{{ docker_packages }}"
     state: present
     update_cache: true
   tags:

@@ -1,0 +1,5 @@
+---
+# Common role variables
+
+common_timezone: Europe/Paris
+common_locale: en_US.UTF-8

@@ -1,15 +1,17 @@
 # Cleanup: Remove old Cockpit installation
+
 - name: Remove old Cockpit package (if any)
   ansible.builtin.apt:
-    name: cockpit
+    name: "{{ web_management_packages }}"
     state: absent
     purge: true
   tags:
     - web_management
 
+
 - name: Installer Cockpit
   ansible.builtin.apt:
-    name: cockpit
+    name: "{{ web_management_packages }}"
     state: present
   tags:
     - web_management

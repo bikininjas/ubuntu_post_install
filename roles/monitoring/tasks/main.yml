@@ -1,16 +1,18 @@
 ---
 # Cleanup: Remove old fail2ban installation
+
 - name: Remove old fail2ban package (if any)
   ansible.builtin.apt:
-    name: fail2ban
+    name: "{{ monitoring_packages }}"
     state: absent
     purge: true
   tags:
     - monitoring
 
+
 - name: Installer Fail2ban pour le monitoring des connexions
   ansible.builtin.apt:
-    name: fail2ban
+    name: "{{ monitoring_packages }}"
     state: present
   tags:
     - monitoring

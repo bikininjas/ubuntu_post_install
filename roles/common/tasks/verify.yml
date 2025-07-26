@@ -3,110 +3,108 @@
   ansible.builtin.shell: |
     set -o pipefail
     ss -tuln | grep ':22 '
-  register: ssh_port_22
+  register: common_ssh_port_22
   ignore_errors: true
   changed_when: false
 
 - name: Fail if SSH is accessible on port 22
   ansible.builtin.fail:
     msg: "SSH is still accessible on port 22!"
-  when: ssh_port_22.rc == 0
+  when: common_ssh_port_22.rc == 0
 
 - name: Check that HTTP (80) is open
   ansible.builtin.shell: |
     set -o pipefail
     ss -tuln | grep ':80 '
-  register: http_port
+  register: common_http_port
   changed_when: false
 
 - name: Check that HTTPS (443) is open
   ansible.builtin.shell: |
     set -o pipefail
     ss -tuln | grep ':443 '
-  register: https_port
+  register: common_https_port
   changed_when: false
 
 - name: Check that SSH is open on the configured port
   ansible.builtin.shell: |
     set -o pipefail
     ss -tuln | grep ':{{ ssh_port }} '
-  register: ssh_custom_port
+  register: common_ssh_custom_port
   changed_when: false
 
 - name: Fail if HTTP or HTTPS are not open
   ansible.builtin.fail:
     msg: "HTTP (80) or HTTPS (443) is not open!"
-  when: http_port.rc != 0 or https_port.rc != 0
+  when: common_http_port.rc != 0 or common_https_port.rc != 0
 
 - name: Fail if SSH is not open on the configured port
   ansible.builtin.fail:
     msg: "SSH is not open on port {{ ssh_port }}!"
-  when: ssh_custom_port.rc != 0
+  when: common_ssh_custom_port.rc != 0
 
 - name: Check that Cockpit (9090) is open
   ansible.builtin.shell: |
     set -o pipefail
     ss -tuln | grep ':9090 '
-  register: cockpit_port
+  register: common_cockpit_port
   changed_when: false
 
 - name: Warn if Cockpit (9090) is not open
   ansible.builtin.debug:
     msg: "Cockpit (9090) is not open."
-  when: cockpit_port.rc != 0
+  when: common_cockpit_port.rc != 0
 
 - name: List all open ports
   ansible.builtin.command: ss -tuln
-  register: all_ports
+  register: common_all_ports
   changed_when: false
 
 - name: Show all open ports
   ansible.builtin.debug:
-    var: all_ports.stdout_lines
-  register: http_port
-  changed_when: false
+    var: common_all_ports.stdout_lines
 
 - name: Check that HTTPS (443) is open
   ansible.builtin.shell: |
     set -o pipefail
     ss -tuln | grep ':443 '
-  register: https_port
+  register: common_https_port
   changed_when: false
 
 - name: Check that SSH is open on the configured port
   ansible.builtin.shell: |
     set -o pipefail
     ss -tuln | grep ':{{ ssh_port }} '
-  register: ssh_custom_port
+  register: common_ssh_custom_port
   changed_when: false
 
 - name: Fail if HTTP or HTTPS are not open
   ansible.builtin.fail:
     msg: "HTTP (80) or HTTPS (443) is not open!"
-  when: http_port.rc != 0 or https_port.rc != 0
+  when: common_http_port.rc != 0 or common_https_port.rc != 0
 
 - name: Fail if SSH is not open on the configured port
   ansible.builtin.fail:
     msg: "SSH is not open on port {{ ssh_port }}!"
-  when: ssh_custom_port.rc != 0
+  when: common_ssh_custom_port.rc != 0
 
 - name: Check that Cockpit (9090) is open
   ansible.builtin.shell: |
     set -o pipefail
     ss -tuln | grep ':9090 '
-  register: cockpit_port
+  register: common_cockpit_port
   changed_when: false
 
 - name: Warn if Cockpit (9090) is not open
   ansible.builtin.debug:
     msg: "Cockpit (9090) is not open."
-  when: cockpit_port.rc != 0
+  when: common_cockpit_port.rc != 0
 
 - name: List all open ports
   ansible.builtin.command: ss -tuln
-  register: all_ports
+  register: common_all_ports
   changed_when: false
 
 - name: Show all open ports
   ansible.builtin.debug:
-    var: all_ports.stdout_lines
+    var: common_all_ports.stdout_lines

@@ -17,7 +17,7 @@
 
 - name: Installer UFW (Uncomplicated Firewall)
   ansible.builtin.apt:
-    name: ufw
+    name: "{{ security_packages }}"
     state: present
   tags:
     - security

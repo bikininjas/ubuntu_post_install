@@ -1,0 +1,4 @@
+---
+# Monitoring role variables
+monitoring_packages:
+  - fail2ban

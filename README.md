@@ -7,28 +7,46 @@ This project helps you set up your Ubuntu server automatically. You don't need t
 1. **Install Ansible**
 
    Open a terminal and type:
+   
    ```bash
+   
+   ```bash
+
    pip install ansible
-   ```
+
+   ```bash
+
 
 2. **Download this project**
 
    In the terminal, type:
+   
+   ```bash
+   
    ```bash
    git clone https://github.com/bikininjas/ubuntu_post_install.git
    cd ubuntu_post_install
+
    ```
+   
+   ```
+
 
 3. **Tell the computer about your server**
 
+
    Open the file called `inventory` in a text editor. Add your server's address (ask someone if you don't know it).
+
 
 4. **Run the setup**
 
+
    In the terminal, type:
+
    ```bash
    ansible-playbook -i inventory playbook.yml
    ```
+
 
 5. **Check your work (optional, but recommended!)**
 
@@ -65,7 +83,8 @@ Ask a friend or family member who knows computers, or open an issue on GitHub.
 Maintained by bikininjas
 
 
-# ubuntu_post_install
+   
+
 
 Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS). Automates security, monitoring, web management, and development tool setup.
 This repository provides a comprehensive Ansible playbook and roles to automate the post-installation configuration of Ubuntu servers (VPS). It includes tasks for security hardening, monitoring setup, web management, and development tool installation.
@@ -109,7 +128,8 @@ Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS
    ```bash
    git clone https://github.com/bikininjas/ubuntu_post_install.git
    cd ubuntu_post_install
-   ```
+   ```bash
+   ```bash
 
 2. Edit `inventory` to add your server(s) under the `[vps]` group.
 
@@ -119,7 +139,11 @@ Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS
 
    ```bash
    ansible-playbook -i inventory playbook.yml
-   ```
+   
+   ```bash
+   
+   ```bash
+   
 ### Optional: Create the 'seb' user
 
 You can optionally create a user named `seb` with sudo privileges (NOPASSWD) by
@@ -151,6 +175,9 @@ When running the workflow manually, you will be prompted for:
 2. Edit `inventory` to add your server(s) under the `[vps]` group.
 
 4. Run the playbook:
+   
+   ```bash
+   
    ```bash
    ansible-playbook -i inventory playbook.yml
    ```

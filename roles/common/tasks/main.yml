@@ -32,18 +32,18 @@
     - common
 
 
-- name: Set timezone to Europe/Paris
+- name: Set timezone
   community.general.timezone:
-    name: Europe/Paris
+    name: "{{ common_timezone }}"
   tags:
     - common
 
 
-- name: Set default system language to English (en_US.UTF-8)
+- name: Set default system language
   ansible.builtin.lineinfile:
     path: /etc/default/locale
     regexp: '^LANG='
-    line: 'LANG="en_US.UTF-8"'
+    line: 'LANG="{{ common_locale }}"'
     create: true
     mode: '0644'
   tags:

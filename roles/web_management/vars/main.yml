@@ -1,0 +1,4 @@
+---
+# Web management role variables
+web_management_packages:
+  - cockpit
