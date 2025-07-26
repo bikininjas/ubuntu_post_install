@@ -2,44 +2,34 @@
 
 This project helps you set up your Ubuntu server automatically. You don't need to be a computer expert!
 
+## Requirements
+
+- The playbook will automatically install [UFW (Uncomplicated Firewall)](https://help.ubuntu.com/community/UFW) if it is not present. No manual action is needed.
+
 ## Quick Start
 
 1. **Install Ansible**
 
    Open a terminal and type:
-   
-   ```bash
-   
-   ```bash
 
+   ```bash
    pip install ansible
-
-   ```bash
-
+   ```
 
 2. **Download this project**
 
    In the terminal, type:
-   
-   ```bash
-   
+
    ```bash
    git clone https://github.com/bikininjas/ubuntu_post_install.git
    cd ubuntu_post_install
-
    ```
-   
-   ```
-
 
 3. **Tell the computer about your server**
 
-
    Open the file called `inventory` in a text editor. Add your server's address (ask someone if you don't know it).
-
-
+   
 4. **Run the setup**
-
 
    In the terminal, type:
 
@@ -47,13 +37,14 @@ This project helps you set up your Ubuntu server automatically. You don't need t
    ansible-playbook -i inventory playbook.yml
    ```
 
-
 5. **Check your work (optional, but recommended!)**
 
    In the terminal, type:
+
    ```bash
    ./local-validation.sh
    ```
+
    If you see "Validation complete" and no errors, everything is good!
 
 ---
@@ -66,7 +57,6 @@ This project helps you set up your Ubuntu server automatically. You don't need t
 - Keeps your server up to date
 
 ---
-
 
 ## GitHub Actions
 
@@ -81,10 +71,6 @@ Ask a friend or family member who knows computers, or open an issue on GitHub.
 ---
 
 Maintained by bikininjas
-
-
-   
-
 
 Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS). Automates security, monitoring, web management, and development tool setup.
 This repository provides a comprehensive Ansible playbook and roles to automate the post-installation configuration of Ubuntu servers (VPS). It includes tasks for security hardening, monitoring setup, web management, and development tool installation.
@@ -128,8 +114,7 @@ Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS
    ```bash
    git clone https://github.com/bikininjas/ubuntu_post_install.git
    cd ubuntu_post_install
-   ```bash
-   ```bash
+   ```
 
 2. Edit `inventory` to add your server(s) under the `[vps]` group.
 
@@ -139,10 +124,7 @@ Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS
 
    ```bash
    ansible-playbook -i inventory playbook.yml
-   
-   ```bash
-   
-   ```bash
+   ```
    
 ### Optional: Create the 'seb' user
 
@@ -159,8 +141,6 @@ ansible-playbook -i inventory playbook.yml --extra-vars "create_seb_user=true se
 
 If you do not want to create the user, leave `create_seb_user` as `false` (default).
 
-
-
 **In GitHub Actions:**
 When running the workflow manually, you will be prompted for:
 
@@ -174,14 +154,11 @@ When running the workflow manually, you will be prompted for:
 
 2. Edit `inventory` to add your server(s) under the `[vps]` group.
 
-4. Run the playbook:
-   
-   ```bash
-   
+3. Run the playbook:
+
    ```bash
    ansible-playbook -i inventory playbook.yml
    ```
-
 
 - `common`: System update and cleanup
 - `security`: SSH hardening, UFW firewall
@@ -210,8 +187,6 @@ When running the workflow manually, you will be prompted for:
   configurations before installing or configuring new ones. This ensures a clean,
   idempotent setup every time.
 
-
-
 - Ensure you have Ansible installed: `pip install ansible`
 - Run as a user with sudo privileges.
 - The playbook now sets the timezone to Europe/Paris and system language to English (en_US.UTF-8) on all servers (common role).
@@ -226,8 +201,6 @@ When running the workflow manually, you will be prompted for:
 
 Maintained by bikininjas
 
-
-
 ## Using SSH Keys with GitHub Actions (webfactory/ssh-agent)
 
 To allow GitHub Actions to connect to your server via SSH, you need to generate an SSH key, add it to your server, and add the private key as a GitHub secret:
@@ -237,6 +210,7 @@ To allow GitHub Actions to connect to your server via SSH, you need to generate 
 ```bash
 ssh-keygen -t ed25519 -C "github-actions-vps" -f ~/.ssh/github-actions-vps
 ```
+
 Press Enter to skip the passphrase (recommended for automation).
 
 ### 2. Add the public key to your server's authorized_keys
@@ -248,9 +222,11 @@ cat ~/.ssh/github-actions-vps.pub | ssh youruser@yourserver 'cat >> ~/.ssh/autho
 ### 3. Add the private key to your GitHub repository secrets
 
 - Open the private key file:
+  
   ```bash
   cat ~/.ssh/github-actions-vps
   ```
+
 - Copy the entire contents.
 - Go to your GitHub repository → Settings → Secrets and variables → Actions → New repository secret.
 - Name it `VPSZ_SSH_KEY` and paste the private key contents.
@@ -258,11 +234,11 @@ cat ~/.ssh/github-actions-vps.pub | ssh youruser@yourserver 'cat >> ~/.ssh/autho
 ### 4. The workflow will use this secret automatically
 
 Your workflow already uses:
+
 ```yaml
 with:
   ssh-private-key: ${{ secrets.VPSZ_SSH_KEY }}
 ```
-
 
 This repository includes a GitHub Actions workflow to automate VPS configuration using Ansible:
 
