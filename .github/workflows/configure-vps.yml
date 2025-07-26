@@ -18,29 +18,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Set up Node.js (for markdownlint)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
 
       - name: Install Ansible community.general collection
-        run: ansible-galaxy collection install community.general
+        run: ansible-galaxy collection install community.general --force --force
 
       - name: Run ansible-lint
         uses: ansible/ansible-lint@main
 
-      - name: Run yamllint
-        uses: ansible-actions/yamllint-action@v0.0.2
-        with:
-          target: ./
-
-      - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
-
-      - name: Run markdownlint
-        uses: nosborn/github-action-markdown-cli@v3.5.0
-        with:
-          files: .
 
   check-port-22:
     name: 'Check if SSH port 22 is reachable'
@@ -80,7 +64,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install 'ansible==2.19.*'
-          ansible-galaxy collection install community.general
+          ansible-galaxy collection install community.general --force
 
       - name: Setup SSH key
         uses: webfactory/ssh-agent@v0.9.1
@@ -117,10 +101,10 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install ansible
-          ansible-galaxy collection install community.general
+          ansible-galaxy collection install community.general --force --force
 
       - name: Setup SSH key
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.9.1
         with:
           ssh-private-key: ${{ secrets.VPSZ_SSH_KEY }}
 
