@@ -23,14 +23,14 @@
     - security
 
 - name: Autoriser le nouveau port SSH dans UFW
-  community.general.community.general.ufw:
+  community.general.ufw:
     rule: allow
-    port: '{{ ssh_port }}'
+    port: "{{ ssh_port }}"
     proto: tcp
   tags:
     - security
 
-- name: Autoriser les ports HTTP (80) et HTTPS (443)
+- name: Autoriser les ports HTTP et HTTPS (80/443)
   # Utilisation des numéros de port car les profils UFW 'http' et 'https' peuvent ne pas exister
   ufw:
     rule: allow
