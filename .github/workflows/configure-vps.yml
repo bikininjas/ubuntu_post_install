@@ -79,7 +79,7 @@ jobs:
       - name: Install Ansible and dependencies
         run: |
           pip install --upgrade pip
-          pip install ansible
+          pip install 'ansible==2.19.*'
           ansible-galaxy collection install community.general
 
       - name: Setup SSH key
