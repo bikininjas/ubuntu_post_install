@@ -1,6 +1,6 @@
 # Cleanup: Reset UFW to default before applying new rules
 - name: Reset UFW to default
-  community.general.ufw:
+  ufw:
     state: reset
   tags:
     - security
@@ -23,7 +23,7 @@
     - security
 
 - name: Autoriser le nouveau port SSH dans UFW
-  community.general.ufw:
+  ufw:
     rule: allow
     port: '{{ ssh_port }}'
     proto: tcp
@@ -32,7 +32,7 @@
 
 - name: Autoriser les ports HTTP (80) et HTTPS (443)
   # Utilisation des numéros de port car les profils UFW 'http' et 'https' peuvent ne pas exister
-  community.general.ufw:
+  ufw:
     rule: allow
     port: '{{ item }}'
     proto: tcp
@@ -43,7 +43,7 @@
     - security
 
 - name: Activer UFW
-  community.general.ufw:
+  ufw:
     state: enabled
     policy: deny
   tags:
