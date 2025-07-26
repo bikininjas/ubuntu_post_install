@@ -30,14 +30,25 @@ jobs:
     needs: lint
     outputs:
       ssh_port: ${{ steps.check.outputs.ssh_port }}
+      only_22_open: ${{ steps.check.outputs.only_22_open }}
     steps:
       - name: Check SSH ports
         id: check
         run: |
+          port22_open=false
+          port10022_open=false
           if nc -z -w5 ${{ secrets.VPS_HOST }} 22; then
+            port22_open=true
+          fi
+          if nc -z -w5 ${{ secrets.VPS_HOST }} 10022; then
+            port10022_open=true
+          fi
+          if [ "$port22_open" = true ] && [ "$port10022_open" = false ]; then
             echo "ssh_port=22" >> $GITHUB_OUTPUT
-          elif nc -z -w5 ${{ secrets.VPS_HOST }} 10022; then
+            echo "only_22_open=true" >> $GITHUB_OUTPUT
+          elif [ "$port10022_open" = true ]; then
             echo "ssh_port=10022" >> $GITHUB_OUTPUT
+            echo "only_22_open=false" >> $GITHUB_OUTPUT
           else
             echo "No SSH port open!" >&2
             exit 1
@@ -47,7 +58,7 @@ jobs:
     name: '1. Change SSH Port to 10022 (if needed)'
     runs-on: ubuntu-latest
     needs: check-port
-    if: needs.check-port.outputs.ssh_port == '22'
+    if: needs.check-port.outputs.only_22_open == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
