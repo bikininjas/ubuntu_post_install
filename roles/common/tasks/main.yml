@@ -1,23 +1,50 @@
 ---
-- name: Mettre à jour le cache APT et les paquets
-  apt:
-    update_cache: yes
-    upgrade: dist
-    autoremove: yes
+
+
+- name: Optionally create user 'seb'
+  ansible.builtin.user:
+    name: seb
+    password: "{{ seb_password | password_hash('sha512') }}"
+    shell: /bin/bash
+    groups: sudo
+    append: true
+  when: create_seb_user | default(false)
   tags:
     - common
 
+- name: Add seb to sudoers for all commands (NOPASSWD)
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/seb
+    content: "seb ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: '0440'
+  when: create_seb_user | default(false)
+  tags:
+    - common
+
+- name: Mettre à jour le cache APT et les paquets
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+    autoremove: true
+  tags:
+    - common
+
+
 - name: Set timezone to Europe/Paris
-  timezone:
+  community.general.timezone:
     name: Europe/Paris
   tags:
     - common
 
+
 - name: Set default system language to English (en_US.UTF-8)
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/default/locale
     regexp: '^LANG='
     line: 'LANG="en_US.UTF-8"'
-    create: yes
+    create: true
+    mode: '0644'
   tags:
     - common

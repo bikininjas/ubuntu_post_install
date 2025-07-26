@@ -1,21 +1,29 @@
----
+# Cleanup: Remove old Cockpit installation
+- name: Remove old Cockpit package (if any)
+  ansible.builtin.apt:
+    name: cockpit
+    state: absent
+    purge: true
+  tags:
+    - web_management
+
 - name: Installer Cockpit
-  apt:
+  ansible.builtin.apt:
     name: cockpit
     state: present
   tags:
     - web_management
 
 - name: S'assurer que Cockpit est actif et démarré
-  service:
+  ansible.builtin.service:
     name: cockpit.socket
     state: started
-    enabled: yes
+    enabled: true
   tags:
     - web_management
 
 - name: Autoriser Cockpit dans UFW
-  ufw:
+  community.general.ufw:
     rule: allow
     port: '9090' # Port par défaut de Cockpit
     proto: tcp

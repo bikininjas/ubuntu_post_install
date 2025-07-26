@@ -2,6 +2,15 @@ name: Configure VPS
 
 on:
   workflow_dispatch:
+    inputs:
+      create_seb_user:
+        description: 'Create user seb (true/false)'
+        required: false
+        default: 'false'
+      seb_password:
+        description: 'Password for seb (required if creating user)'
+        required: false
+        default: ''
 
 jobs:
   check-port-22:
@@ -48,7 +57,8 @@ jobs:
           echo "[vps]" > inventory
           echo "${{ secrets.VPS_HOST }} ansible_user=${{ secrets.VPS_USER }} ansible_port=22" >> inventory
           ssh-keyscan -p 22 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-          ansible-playbook -i inventory playbook.yml --tags security
+          ansible-playbook -i inventory playbook.yml --tags security \
+            --extra-vars "create_seb_user=${{ github.event.inputs.create_seb_user }} seb_password='${{ github.event.inputs.seb_password }}'"
 
   provision-server:
     name: '2. Provision Server on Port 10022'
@@ -80,7 +90,8 @@ jobs:
           echo "[vps]" > inventory
           echo "${{ secrets.VPS_HOST }} ansible_user=${{ secrets.VPS_USER }} ansible_port=10022" >> inventory
           ssh-keyscan -p 10022 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-          ansible-playbook -i inventory playbook.yml --skip-tags security
+          ansible-playbook -i inventory playbook.yml --skip-tags security \
+            --extra-vars "create_seb_user=${{ github.event.inputs.create_seb_user }} seb_password='${{ github.event.inputs.seb_password }}'"
       - name: Print summary
         run: |
           echo "### VPS Configuration Summary"

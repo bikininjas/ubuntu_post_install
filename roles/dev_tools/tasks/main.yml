@@ -1,16 +1,37 @@
-# Remove any old Docker repo files before adding the new one
-- name: Remove old Docker APT sources (if any)
-  file:
-    path: /etc/apt/sources.list.d/docker.list
+# Cleanup: Remove old Docker and Node.js installations
+- name: Remove old Docker packages (if any)
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker
+      - docker-engine
+      - docker.io
     state: absent
+    purge: true
+  tags:
+    - dev_tools
+- name: Remove old Node.js and npm (if any)
+  ansible.builtin.apt:
+    name:
+      - nodejs
+      - npm
+    state: absent
+    purge: true
   tags:
     - dev_tools
 
----
+# Remove any old Docker repo files before adding the new one
+
 # Tâches pour Git, Go, Node.js, Python
-# NOTE: Les paquets nodejs et npm installés via apt peuvent ne pas être à jour. Pour la dernière version de Node.js, utilisez NodeSource (https://github.com/nodesource/distributions) ou nvm (https://github.com/nvm-sh/nvm).
+# NOTE: Les paquets nodejs et npm installés via apt peuvent ne pas être à jour.
+# Pour la dernière version de Node.js, utilisez NodeSource:
+#   https://github.com/nodesource/distributions
+# ou nvm:
+#   https://github.com/nvm-sh/nvm
 - name: Installer les outils de développement (Git, Go, Node.js, Python)
-  apt:
+  ansible.builtin.apt:
     name:
       - git
       - golang-go
@@ -22,18 +43,10 @@
   tags:
     - dev_tools
 
-
 # Tâches pour Docker
-- name: Créer le dossier keyrings pour apt (si nécessaire)
-  file:
-    path: /etc/apt/keyrings
-    state: directory
-    mode: '0755'
-  tags:
-    - dev_tools
 
 - name: Télécharger la clé GPG officielle de Docker dans le keyring
-  get_url:
+  ansible.builtin.get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
     dest: /etc/apt/keyrings/docker.asc
     mode: '0644'
@@ -41,29 +54,30 @@
     - dev_tools
 
 - name: Ajouter le dépôt Docker (avec signed-by)
-  apt_repository:
-    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
     state: present
     filename: docker
   tags:
     - dev_tools
 
 - name: Installer Docker Engine
-  apt:
+  ansible.builtin.apt:
     name:
       - docker-ce
       - docker-ce-cli
       - containerd.io
     state: present
-    update_cache: yes
+    update_cache: true
   tags:
     - dev_tools
 
 - name: S'assurer que Docker est démarré et activé
-  service:
+  ansible.builtin.service:
     name: docker
     state: started
-    enabled: yes
+    enabled: true
   tags:
     - dev_tools
-    

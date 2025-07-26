@@ -1,18 +1,18 @@
-
-- hosts: vps
-  become: yes
+---
+- name: Ubuntu VPS Post-Install
+  hosts: vps
+  become: true
   vars:
     ssh_port: 2244 # Définissez votre nouveau port SSH ici
 
   pre_tasks:
     - name: Update all apt packages before running roles
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
         upgrade: dist
-        autoremove: yes
+        autoremove: true
       tags:
         - always
-
 
   roles:
     - role: common
@@ -23,4 +23,4 @@
 
   tasks:
     - name: Post-setup checks (firewall and open ports)
-      import_tasks: roles/common/tasks/verify.yml
+      ansible.builtin.import_tasks: roles/common/tasks/verify.yml

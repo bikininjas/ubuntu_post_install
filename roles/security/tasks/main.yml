@@ -1,23 +1,29 @@
----
+# Cleanup: Reset UFW to default before applying new rules
+- name: Reset UFW to default
+  community.general.ufw:
+    state: reset
+  tags:
+    - security
 - name: Changer le port SSH par défaut
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: '^#?Port 22'
     line: 'Port {{ ssh_port }}'
     state: present
+    mode: '0644'
   notify: Restart SSH
   tags:
     - security
 
 - name: Installer UFW (Uncomplicated Firewall)
-  apt:
+  ansible.builtin.apt:
     name: ufw
     state: present
   tags:
     - security
 
 - name: Autoriser le nouveau port SSH dans UFW
-  ufw:
+  community.general.ufw:
     rule: allow
     port: '{{ ssh_port }}'
     proto: tcp
@@ -26,7 +32,7 @@
 
 - name: Autoriser les ports HTTP (80) et HTTPS (443)
   # Utilisation des numéros de port car les profils UFW 'http' et 'https' peuvent ne pas exister
-  ufw:
+  community.general.ufw:
     rule: allow
     port: '{{ item }}'
     proto: tcp
@@ -37,9 +43,8 @@
     - security
 
 - name: Activer UFW
-  ufw:
+  community.general.ufw:
     state: enabled
     policy: deny
   tags:
     - security
-    
