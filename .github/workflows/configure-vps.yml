@@ -1,5 +1,4 @@
 name: Configure VPS
-
 on:
   push:
   workflow_dispatch:
@@ -12,8 +11,6 @@ on:
         description: 'Password for seb (required if creating user)'
         required: false
         default: ''
-
-
 jobs:
   lint:
     name: 'Lint all files (shell, yaml, markdown, ansible)'
@@ -147,3 +144,4 @@ jobs:
             echo "- SSH port 22 was not reachable. Only provisioning on port 10022 was performed."
             echo "- All roles except security were applied."
           fi
+
