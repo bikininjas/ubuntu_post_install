@@ -80,9 +80,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install ansible
-
-      - name: Install Ansible community.general collection
-        run: ansible-galaxy collection install community.general
+          ansible-galaxy collection install community.general
 
       - name: Setup SSH key
         uses: webfactory/ssh-agent@v0.9.0
@@ -119,9 +117,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install ansible
-
-      - name: Install Ansible community.general collection
-        run: ansible-galaxy collection install community.general
+          ansible-galaxy collection install community.general
 
       - name: Setup SSH key
         uses: webfactory/ssh-agent@v0.9.0
