@@ -227,7 +227,42 @@ When running the workflow manually, you will be prompted for:
 Maintained by bikininjas
 
 
-## CI/CD: GitHub Actions Workflow
+
+## Using SSH Keys with GitHub Actions (webfactory/ssh-agent)
+
+To allow GitHub Actions to connect to your server via SSH, you need to generate an SSH key, add it to your server, and add the private key as a GitHub secret:
+
+### 1. Generate an SSH key on your local machine or server
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-vps" -f ~/.ssh/github-actions-vps
+```
+Press Enter to skip the passphrase (recommended for automation).
+
+### 2. Add the public key to your server's authorized_keys
+
+```bash
+cat ~/.ssh/github-actions-vps.pub | ssh youruser@yourserver 'cat >> ~/.ssh/authorized_keys'
+```
+
+### 3. Add the private key to your GitHub repository secrets
+
+- Open the private key file:
+  ```bash
+  cat ~/.ssh/github-actions-vps
+  ```
+- Copy the entire contents.
+- Go to your GitHub repository → Settings → Secrets and variables → Actions → New repository secret.
+- Name it `VPSZ_SSH_KEY` and paste the private key contents.
+
+### 4. The workflow will use this secret automatically
+
+Your workflow already uses:
+```yaml
+with:
+  ssh-private-key: ${{ secrets.VPSZ_SSH_KEY }}
+```
+
 
 This repository includes a GitHub Actions workflow to automate VPS configuration using Ansible:
 
