@@ -24,27 +24,21 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install linters and Ansible dependencies
-        run: |
-          pip install --upgrade pip
-          pip install ansible ansible-lint yamllint
-          ansible-galaxy collection install community.general
-          sudo apt-get update && sudo apt-get install -y shellcheck
-          npm install -g markdownlint-cli
-
       - name: Run ansible-lint
-        run: ansible-lint playbook.yml
+        uses: ansible/ansible-lint@main
 
       - name: Run yamllint
-        run: yamllint .
+        uses: ansible-actions/yamllint-action@v0.0.2
+        with:
+          target: ./
 
-      - name: Run shellcheck
-        run: |
-          find . -type f -name '*.sh' -exec shellcheck {} +
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
 
       - name: Run markdownlint
-        run: |
-          find . -type f -name '*.md' -exec markdownlint {} +
+        uses: nosborn/github-action-markdown-cli@v3.5.0
+        with:
+          files: .
 
   check-port-22:
     name: 'Check if SSH port 22 is reachable'
