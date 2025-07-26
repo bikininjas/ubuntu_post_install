@@ -13,6 +13,37 @@ on:
         default: ''
 
 jobs:
+  lint:
+    name: 'Lint all files (shell, yaml, markdown, ansible)'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (for markdownlint)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install linters
+        run: |
+          pip install ansible-lint yamllint
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          npm install -g markdownlint-cli
+
+      - name: Run ansible-lint
+        run: ansible-lint playbook.yml
+
+      - name: Run yamllint
+        run: yamllint .
+
+      - name: Run shellcheck
+        run: |
+          find . -type f -name '*.sh' -exec shellcheck {} +
+
+      - name: Run markdownlint
+        run: |
+          find . -type f -name '*.md' -exec markdownlint {} +
   check-port-22:
     name: 'Check if SSH port 22 is reachable'
     runs-on: ubuntu-latest
