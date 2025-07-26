@@ -91,15 +91,26 @@ jobs:
           ansible-playbook -i inventory playbook.yml --tags security \
             --extra-vars "create_seb_user=${{ github.event.inputs.create_seb_user }} seb_password='${{ github.event.inputs.seb_password }}'" || true
 
-      - name: Wait for SSH to be available on port 10022
+      - name: Thoroughly check SSH port change
         run: |
+          echo "Checking if SSH port 10022 is open..."
           for i in {1..10}; do
             if nc -z -w5 ${{ secrets.VPS_HOST }} 10022; then
-              echo "SSH is up on port 10022!"; exit 0;
+              echo "✅ SSH is up on port 10022!";
+              break
             fi
             echo "Waiting for SSH on port 10022..."; sleep 3;
           done
-          echo "Timeout waiting for SSH on port 10022"; exit 1
+          if ! nc -z -w5 ${{ secrets.VPS_HOST }} 10022; then
+            echo "❌ ERROR: SSH is NOT available on port 10022 after port change!" >&2
+            exit 1
+          fi
+          echo "Checking if SSH port 22 is still open..."
+          if nc -z -w5 ${{ secrets.VPS_HOST }} 22; then
+            echo "⚠️  WARNING: SSH is still open on port 22 after supposed port change!" >&2
+          else
+            echo "✅ SSH port 22 is closed as expected."
+          fi
 
   provision-server:
     name: '2. Provision Server'
