@@ -69,6 +69,15 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.VPSZ_SSH_KEY }}
 
+      - name: Debug SSH connection
+        run: |
+          echo "[vps]" > inventory
+          echo "${{ secrets.VPS_HOST }} ansible_user=${{ secrets.VPS_USER }} ansible_port=22" >> inventory
+          ssh-keyscan -p 22 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          echo "\n--- SSH DEBUG OUTPUT ---\n"
+          ssh -v -p 22 -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} exit || true
+          echo "\n--- END SSH DEBUG OUTPUT ---\n"
+
       - name: Change SSH port with Ansible (security only)
         run: |
           echo "[vps]" > inventory
