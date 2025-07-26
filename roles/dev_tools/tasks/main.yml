@@ -22,7 +22,22 @@
   tags:
     - dev_tools
 
-# Remove any old Docker repo files before adding the new one
+
+# Remove any old Docker APT sources before adding the new one (prevents Signed-By error)
+- name: Remove old Docker APT sources (fixes Signed-By conflicts)
+  ansible.builtin.file:
+    path: "/etc/apt/sources.list.d/docker.list"
+    state: absent
+  tags:
+    - dev_tools
+
+- name: Remove old Docker APT sources (legacy location)
+  ansible.builtin.lineinfile:
+    path: "/etc/apt/sources.list"
+    regexp: '^deb .*download.docker.com/linux/ubuntu'
+    state: absent
+  tags:
+    - dev_tools
 
 # Tâches pour Git, Go, Node.js, Python
 # NOTE: Les paquets nodejs et npm installés via apt peuvent ne pas être à jour.

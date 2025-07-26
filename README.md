@@ -49,6 +49,13 @@ This project helps you set up your Ubuntu server automatically. You don't need t
 
 ---
 
+
+## GitHub Actions
+
+This project includes a GitHub Actions workflow that will run automatically on every push to this repository. It checks your setup and helps keep everything working.
+
+---
+
 ## Need help?
 
 Ask a friend or family member who knows computers, or open an issue on GitHub.

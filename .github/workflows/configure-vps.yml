@@ -1,6 +1,7 @@
 name: Configure VPS
 
 on:
+  push:
   workflow_dispatch:
     inputs:
       create_seb_user:
