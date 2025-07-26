@@ -74,8 +74,9 @@ jobs:
           echo "[vps]" > inventory
           echo "${{ secrets.VPS_HOST }} ansible_user=${{ secrets.VPS_USER }} ansible_port=22" >> inventory
           ssh-keyscan -p 22 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          # The SSH connection will be dropped after the port is changed; ignore the error so the workflow continues
           ansible-playbook -i inventory playbook.yml --tags security \
-            --extra-vars "create_seb_user=${{ github.event.inputs.create_seb_user }} seb_password='${{ github.event.inputs.seb_password }}'"
+            --extra-vars "create_seb_user=${{ github.event.inputs.create_seb_user }} seb_password='${{ github.event.inputs.seb_password }}'" || true
 
   provision-server:
     name: '2. Provision Server on Port 10022'
@@ -99,7 +100,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install ansible
-          ansible-galaxy collection install community.general --force --force
+          ansible-galaxy collection install community.general --force
 
       - name: Setup SSH key
         uses: webfactory/ssh-agent@v0.9.1
