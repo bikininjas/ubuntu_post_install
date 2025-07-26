@@ -116,6 +116,15 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.VPSZ_SSH_KEY }}
 
+      - name: Debug SSH connection on port 10022
+        run: |
+          echo "[vps]" > inventory
+          echo "${{ secrets.VPS_HOST }} ansible_user=${{ secrets.VPS_USER }} ansible_port=10022" >> inventory
+          ssh-keyscan -p 10022 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          echo "\n--- SSH DEBUG OUTPUT (port 10022) ---\n"
+          ssh -v -p 10022 -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} exit || true
+          echo "\n--- END SSH DEBUG OUTPUT ---\n"
+
       - name: Provision server with Ansible (all roles except security)
         run: |
           echo "[vps]" > inventory
