@@ -1,21 +1,30 @@
 # 🚀 Guide de Démarrage Rapide
 
-## Installation en 3 étapes
+## Installation en 4 étapes
 
-### 1️⃣ Télécharger le script
+### 1️⃣ Installer Git (si nécessaire)
+
+Sur un serveur tout neuf, Git n'est pas installé par défaut :
+
+```bash
+sudo apt update
+sudo apt install -y git
+```
+
+### 2️⃣ Télécharger le script
 
 ```bash
 git clone https://github.com/bikininjas/ubuntu_post_install.git
 cd ubuntu_post_install
 ```
 
-### 2️⃣ Rendre les scripts exécutables
+### 3️⃣ Rendre les scripts exécutables
 
 ```bash
 chmod +x post_install.sh modules/*.sh
 ```
 
-### 3️⃣ Lancer l'installation
+### 4️⃣ Lancer l'installation
 
 ```bash
 sudo ./post_install.sh
@@ -28,6 +37,14 @@ sudo ./post_install.sh
 3. **Countdown** : 3 secondes avant le démarrage
 4. **Mot de passe** : Vous devrez créer un mot de passe pour l'utilisateur "seb"
 5. **Installation automatique** : Tout le reste se fait automatiquement !
+
+## 💻 Installation complète en une ligne
+
+Si vous préférez tout en une seule commande (sur un serveur neuf) :
+
+```bash
+sudo apt update && sudo apt install -y git && git clone https://github.com/bikininjas/ubuntu_post_install.git && cd ubuntu_post_install && chmod +x post_install.sh modules/*.sh && sudo ./post_install.sh
+```
 
 ## ⏱️ Durée estimée
 
@@ -93,6 +110,30 @@ update-log
 ```
 
 ## 🆘 Besoin d'aide ?
+
+### Serveur tout neuf sans Git
+
+Si vous êtes sur un serveur Ubuntu fraîchement installé :
+
+```bash
+# 1. Mettre à jour la liste des paquets
+sudo apt update
+
+# 2. Installer Git
+sudo apt install -y git
+
+# 3. Cloner le projet
+git clone https://github.com/bikininjas/ubuntu_post_install.git
+
+# 4. Entrer dans le dossier
+cd ubuntu_post_install
+
+# 5. Rendre les scripts exécutables
+chmod +x post_install.sh modules/*.sh
+
+# 6. Lancer l'installation
+sudo ./post_install.sh
+```
 
 ### Le script ne démarre pas
 
