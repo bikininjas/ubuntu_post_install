@@ -15,6 +15,30 @@ disable=SC1090
 # Disabled because sourced files may not exist during linting
 disable=SC1091
 
+# SC2250: Prefer putting braces around variable references
+# Les accolades ne sont pas toujours nécessaires, style personnel
+disable=SC2250
+
+# SC2292: Prefer [[ ]] over [ ] for tests
+# Les deux syntaxes sont valides en Bash
+disable=SC2292
+
+# SC2312: Consider invoking this command separately
+# Les pipelines sont idiomatiques en Bash
+disable=SC2312
+
+# SC2317: Command appears to be unreachable
+# Fonctions définies pour usage potentiel futur
+disable=SC2317
+
+# SC2016: Expressions don't expand in single quotes
+# Volontaire pour les exports PATH
+disable=SC2016
+
+# SC2230: 'which' is non-standard
+# Compatible avec la majorité des systèmes
+disable=SC2230
+
 # Enable all optional checks
 enable=all
 

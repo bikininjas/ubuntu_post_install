@@ -27,7 +27,7 @@ UPDATE_FLAG="/var/run/updates-available"  # Utilisé dans les scripts générés
 
 # Créer le script de vérification des mises à jour
 log_info "Création du script de vérification..."
-cat > "$UPDATE_CHECK_SCRIPT" << 'EOFSCRIPT'
+cat > "${UPDATE_CHECK_SCRIPT}" << 'EOFSCRIPT'
 #!/bin/bash
 
 ################################################################################

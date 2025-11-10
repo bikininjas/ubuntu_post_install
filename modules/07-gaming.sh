@@ -19,7 +19,7 @@ log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 
 TARGET_USER="seb"
 
-if [ "$EUID" -ne 0 ]; then 
+if [[ "${EUID}" -ne 0 ]]; then 
     log_error "Ce script doit être exécuté en tant que root"
     exit 1
 fi

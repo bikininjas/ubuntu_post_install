@@ -44,11 +44,11 @@ fi
 
 # Détection du répertoire du script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MODULES_DIR="$SCRIPT_DIR/modules"
+MODULES_DIR="${SCRIPT_DIR}/modules"
 
 # Vérification de l'existence du dossier modules
 if [[ ! -d "${MODULES_DIR}" ]]; then
-    log_error "Le dossier modules/ n'existe pas dans $SCRIPT_DIR"
+    log_error "Le dossier modules/ n'existe pas dans ${SCRIPT_DIR}"
     exit 1
 fi
 
@@ -67,7 +67,7 @@ EOF
 echo -e "${NC}"
 
 log_info "Démarrage de l'installation..."
-log_info "Répertoire de travail: $SCRIPT_DIR"
+log_info "Répertoire de travail: ${SCRIPT_DIR}"
 echo ""
 
 # Liste des modules à exécuter (dans l'ordre)
@@ -91,7 +91,7 @@ echo "3) Quitter"
 echo ""
 read -p "Votre choix [1-3]: " INSTALL_CHOICE
 
-case $INSTALL_CHOICE in
+case ${INSTALL_CHOICE} in
     1)
         log_info "Installation complète sélectionnée"
         SELECTED_MODULES=("${MODULES[@]}")
@@ -102,11 +102,12 @@ case $INSTALL_CHOICE in
         echo ""
         echo "Sélectionnez les modules à installer (O/n):"
         for module in "${MODULES[@]}"; do
-            module_name=$(basename "$module" .sh | sed 's/^[0-9]*-//' | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
-            read -p "  - $module_name ? [O/n]: " response
+            # shellcheck disable=SC2312
+            module_name=$(basename "${module}" .sh | sed 's/^[0-9]*-//' | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+            read -p "  - ${module_name} ? [O/n]: " response
             response=${response:-O}
-            if [[ "$response" =~ ^[Oo]$ ]]; then
-                SELECTED_MODULES+=("$module")
+            if [[ "${response}" =~ ^[Oo]$ ]]; then
+                SELECTED_MODULES+=("${module}")
             fi
         done
         ;;
@@ -130,8 +131,9 @@ fi
 echo ""
 log_section "Modules sélectionnés pour l'installation"
 for module in "${SELECTED_MODULES[@]}"; do
-    module_name=$(basename "$module" .sh | sed 's/^[0-9]*-//' | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
-    echo -e "  ${GREEN}✓${NC} $module_name"
+    # shellcheck disable=SC2312
+    module_name=$(basename "${module}" .sh | sed 's/^[0-9]*-//' | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+    echo -e "  ${GREEN}✓${NC} ${module_name}"
 done
 echo ""
 
@@ -156,28 +158,29 @@ FAILED_MODULES=()
 SUCCESSFUL_MODULES=()
 
 for module in "${SELECTED_MODULES[@]}"; do
-    module_path="$MODULES_DIR/$module"
-    module_name=$(basename "$module" .sh | sed 's/^[0-9]*-//' | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+    module_path="${MODULES_DIR}/${module}"
+    # shellcheck disable=SC2312
+    module_name=$(basename "${module}" .sh | sed 's/^[0-9]*-//' | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
     
     if [[ ! -f "${module_path}" ]]; then
-        log_error "Module non trouvé: $module_path"
-        FAILED_MODULES+=("$module_name")
+        log_error "Module non trouvé: ${module_path}"
+        FAILED_MODULES+=("${module_name}")
         continue
     fi
     
     if [[ ! -x "${module_path}" ]]; then
-        log_warning "Le module $module n'est pas exécutable, ajout des permissions..."
-        chmod +x "$module_path"
+        log_warning "Le module ${module} n'est pas exécutable, ajout des permissions..."
+        chmod +x "${module_path}"
     fi
     
-    log_section "Exécution: $module_name"
+    log_section "Exécution: ${module_name}"
     
-    if bash "$module_path"; then
-        log_info "✓ Module $module_name terminé avec succès"
-        SUCCESSFUL_MODULES+=("$module_name")
+    if bash "${module_path}"; then
+        log_info "✓ Module ${module_name} terminé avec succès"
+        SUCCESSFUL_MODULES+=("${module_name}")
     else
-        log_error "✗ Échec du module $module_name"
-        FAILED_MODULES+=("$module_name")
+        log_error "✗ Échec du module ${module_name}"
+        FAILED_MODULES+=("${module_name}")
         
         log_warning "Continuation automatique malgré l'erreur..."
     fi
@@ -197,7 +200,7 @@ log_section "Rapport d'Installation"
 if [[ ${#SUCCESSFUL_MODULES[@]} -gt 0 ]]; then
     echo -e "${GREEN}Modules installés avec succès:${NC}"
     for module in "${SUCCESSFUL_MODULES[@]}"; do
-        echo -e "  ${GREEN}✓${NC} $module"
+        echo -e "  ${GREEN}✓${NC} ${module}"
     done
 fi
 
@@ -205,7 +208,7 @@ if [[ ${#FAILED_MODULES[@]} -gt 0 ]]; then
     echo ""
     echo -e "${RED}Modules en échec:${NC}"
     for module in "${FAILED_MODULES[@]}"; do
-        echo -e "  ${RED}✗${NC} $module"
+        echo -e "  ${RED}✗${NC} ${module}"
     done
 fi
 
