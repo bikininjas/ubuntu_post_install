@@ -24,6 +24,20 @@ fi
 
 log_info "=== Installation du Serveur Web ==="
 
+# Charger la configuration du domaine si disponible
+DOMAIN_CONFIG_FILE="/etc/server-domain.conf"
+if [[ -f "${DOMAIN_CONFIG_FILE}" ]]; then
+    # shellcheck disable=SC1090
+    source "${DOMAIN_CONFIG_FILE}"
+    log_info "Configuration du domaine chargée : ${SERVER_DOMAIN}"
+    DOMAIN_CONFIGURED=true
+else
+    log_warning "Aucun domaine configuré, utilisation de la configuration par défaut"
+    SERVER_DOMAIN="localhost"
+    WWW_DOMAIN="www.localhost"
+    DOMAIN_CONFIGURED=false
+fi
+
 # 1. Installation de Nginx
 log_info "Installation de Nginx..."
 apt update
@@ -108,17 +122,60 @@ http {
 }
 EOF
 
-# 5. Créer un exemple de configuration pour WordPress
+# 5. Créer une configuration par défaut avec le domaine configuré
+if [[ "${DOMAIN_CONFIGURED}" == true ]]; then
+    log_info "Création de la configuration Nginx pour ${SERVER_DOMAIN}..."
+    
+    cat > /etc/nginx/sites-available/default << EOF
+# Configuration par défaut pour ${SERVER_DOMAIN}
+# Généré automatiquement
+
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    
+    server_name ${SERVER_DOMAIN} ${WWW_DOMAIN};
+    root /var/www/html;
+    
+    index index.html index.htm index.nginx-debian.html index.php;
+    
+    # Logs
+    access_log /var/www/logs/access.log;
+    error_log /var/www/logs/error.log;
+    
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+    
+    # PHP support (si activé)
+    location ~ \\.php\$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+    }
+    
+    # Deny access to .htaccess
+    location ~ /\\.ht {
+        deny all;
+    }
+}
+EOF
+
+    # Activer le site
+    ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+    log_info "✓ Configuration par défaut créée pour ${SERVER_DOMAIN}"
+fi
+
+# 6. Créer un exemple de configuration pour WordPress
 log_info "Création d'un template pour WordPress..."
-cat > /etc/nginx/sites-available/wordpress-template << 'EOF'
+cat > /etc/nginx/sites-available/wordpress-template << EOF
 # Configuration WordPress Template
-# Copiez ce fichier et modifiez server_name et root
+# Copiez ce fichier et modifiez selon vos besoins
 
 server {
     listen 80;
     listen [::]:80;
     
-    server_name example.com www.example.com;
+    server_name ${SERVER_DOMAIN:-example.com} ${WWW_DOMAIN:-www.example.com};
     root /var/www/html/wordpress;
     
     index index.php index.html index.htm;
@@ -129,16 +186,20 @@ server {
     
     # WordPress permalinks
     location / {
-        try_files $uri $uri/ /index.php?$args;
+        try_files \$uri \$uri/ /index.php?\$args;
     }
     
     # PHP-FPM
-    location ~ \.php$ {
+    location ~ \\.php\$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/var/run/php/php-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
         include fastcgi_params;
     }
+EOF
+
+# Continuer le template WordPress
+cat >> /etc/nginx/sites-available/wordpress-template << 'EOF'
     
     # Deny access to .htaccess files
     location ~ /\.ht {

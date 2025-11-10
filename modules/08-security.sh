@@ -24,6 +24,13 @@ fi
 
 log_info "=== Configuration de la Sécurité ==="
 
+# Configuration stricte
+ALLOWED_SSH_IP="82.65.136.32"  # IP autorisée pour SSH
+TARGET_USER="seb"
+
+log_info "Configuration de sécurité stricte activée"
+log_info "SSH sera limité à l'IP : ${ALLOWED_SSH_IP}"
+
 # 1. Installation de UFW
 log_info "Installation de UFW (Uncomplicated Firewall)..."
 apt update
@@ -32,36 +39,65 @@ DEBIAN_FRONTEND=noninteractive apt install -y ufw
 # 2. Configuration de base UFW
 log_info "Configuration des règles de base..."
 
-# Politique par défaut
+# Réinitialiser UFW pour partir d'une base propre
+ufw --force reset
+
+# Politique par défaut : TOUT BLOQUER
 ufw default deny incoming
-ufw default allow outgoing
+ufw default deny outgoing
+ufw default allow routed
 
-# Autoriser SSH (important de le faire AVANT d'activer UFW)
-log_warning "Autorisation SSH sur le port 22..."
-ufw allow 22/tcp comment 'SSH'
+# Autoriser les connexions sortantes essentielles
+log_info "Autorisation des connexions sortantes essentielles..."
+ufw allow out 53/udp comment 'DNS'
+ufw allow out 53/tcp comment 'DNS'
+ufw allow out 80/tcp comment 'HTTP sortant'
+ufw allow out 443/tcp comment 'HTTPS sortant'
+ufw allow out 123/udp comment 'NTP'
 
-# Autoriser HTTP et HTTPS
-log_info "Autorisation HTTP et HTTPS..."
+# Autoriser SSH UNIQUEMENT depuis votre IP
+log_warning "Limitation SSH au port 22 depuis ${ALLOWED_SSH_IP}..."
+ufw allow from "${ALLOWED_SSH_IP}" to any port 22 proto tcp comment "SSH depuis IP autorisée"
+
+# Autoriser HTTP et HTTPS depuis n'importe où (pour le serveur web)
+log_info "Autorisation HTTP et HTTPS pour le serveur web..."
 ufw allow 80/tcp comment 'HTTP'
 ufw allow 443/tcp comment 'HTTPS'
 
-# Autoriser des ports pour le développement
-log_info "Autorisation des ports de développement..."
-ufw allow 3000/tcp comment 'Node.js dev'
-ufw allow 8080/tcp comment 'Alternative web'
+# Ports Steam pour les serveurs de jeu
+log_info "Autorisation des ports Steam/Gaming..."
+ufw allow 27015/tcp comment 'Steam SRCDS'
+ufw allow 27015/udp comment 'Steam SRCDS'
+ufw allow 27005/udp comment 'Steam Client'
+ufw allow 27020/udp comment 'Steam SourceTV'
+ufw allow from "${ALLOWED_SSH_IP}" to any port 3000:9000 proto tcp comment 'Ports dev depuis IP autorisée'
 
-# Ports pour Netdata (si nécessaire depuis l'extérieur)
-# Par défaut, on ne l'ouvre pas pour la sécurité
-# ufw allow 19999/tcp comment 'Netdata'
+# Bloquer explicitement les ports de développement depuis l'extérieur (sauf IP autorisée)
+log_info "Blocage des ports de développement depuis l'extérieur..."
+# Ces règles sont redondantes avec default deny, mais explicites pour la clarté
 
 # 3. Activer UFW
 log_info "Activation de UFW..."
 # Utiliser 'yes' pour confirmer automatiquement
 echo "y" | ufw enable
 
-ufw status verbose
+log_info "✓ UFW activé avec configuration stricte"
+echo ""
+log_warning "=========================================="
+log_warning "  IMPORTANT - RÈGLES DE SÉCURITÉ"
+log_warning "=========================================="
+echo ""
+echo -e "${RED}SSH (port 22) :${NC} LIMITÉ à l'IP ${ALLOWED_SSH_IP}"
+echo -e "${GREEN}HTTP (port 80) :${NC} Ouvert à tous"
+echo -e "${GREEN}HTTPS (port 443) :${NC} Ouvert à tous"
+echo -e "${GREEN}Ports Steam (27015, 27005, 27020) :${NC} Ouverts"
+echo -e "${YELLOW}Ports dev (3000-9000) :${NC} Accessibles UNIQUEMENT depuis ${ALLOWED_SSH_IP}"
+echo ""
+log_warning "Si vous perdez l'accès SSH, vous devrez accéder physiquement au serveur"
+log_warning "ou via la console de votre hébergeur pour modifier les règles UFW"
+echo ""
 
-log_info "✓ UFW activé et configuré"
+ufw status verbose
 
 # 4. Installation de Netdata
 log_info "Installation de Netdata (monitoring)..."
@@ -152,24 +188,51 @@ dpkg-reconfigure -plow unattended-upgrades
 
 log_info "=== Module Sécurité Terminé ==="
 echo ""
-echo -e "${GREEN}UFW:${NC} Activé et configuré"
+echo -e "${GREEN}UFW:${NC} Activé avec configuration stricte"
 echo -e "${GREEN}Netdata:${NC} Installé (http://localhost:19999)"
 echo -e "${GREEN}Fail2ban:${NC} Activé"
 echo -e "${GREEN}Unattended-upgrades:${NC} Configuré"
 echo ""
-echo -e "${YELLOW}Règles UFW actives:${NC}"
+echo -e "${YELLOW}=========================================="
+echo -e "  RÈGLES DE SÉCURITÉ ACTIVES"
+echo -e "==========================================${NC}"
+echo ""
+echo -e "${RED}SSH (port 22) :${NC}"
+echo "  ✓ Autorisé UNIQUEMENT depuis : ${ALLOWED_SSH_IP}"
+echo "  ✗ Bloqué depuis toutes les autres IP"
+echo ""
+echo -e "${GREEN}Web (ports 80, 443) :${NC}"
+echo "  ✓ HTTP : Ouvert à tous"
+echo "  ✓ HTTPS : Ouvert à tous"
+echo ""
+echo -e "${GREEN}Gaming (ports Steam) :${NC}"
+echo "  ✓ 27015 TCP/UDP : SRCDS"
+echo "  ✓ 27005 UDP : Steam Client"
+echo "  ✓ 27020 UDP : SourceTV"
+echo ""
+echo -e "${YELLOW}Développement (ports 3000-9000) :${NC}"
+echo "  ✓ Accessible UNIQUEMENT depuis : ${ALLOWED_SSH_IP}"
+echo ""
+echo -e "${YELLOW}Règles UFW détaillées:${NC}"
 ufw status numbered
 echo ""
 echo -e "${YELLOW}Accéder à Netdata:${NC}"
 echo "  - Localement: http://localhost:19999"
-echo "  - Via tunnel SSH: ssh -L 19999:localhost:19999 user@server"
+echo "  - Via tunnel SSH: ssh -L 19999:localhost:19999 ${TARGET_USER}@server"
 echo "  - Via Nginx: activez /etc/nginx/sites-available/netdata"
 echo ""
 echo -e "${YELLOW}Commandes UFW utiles:${NC}"
 echo "  - Voir le statut: ufw status verbose"
-echo "  - Autoriser un port: ufw allow 8000/tcp"
+echo "  - Voir numérotées: ufw status numbered"
+echo "  - Autoriser une IP pour SSH: ufw allow from <IP> to any port 22"
 echo "  - Supprimer une règle: ufw delete <numéro>"
-echo "  - Désactiver UFW: ufw disable"
+echo "  - Désactiver UFW: ufw disable (⚠️ déconseillé)"
+echo ""
+echo -e "${RED}⚠️  IMPORTANT :${NC}"
+echo "  Si vous changez d'IP et perdez l'accès SSH, vous devrez:"
+echo "  1. Accéder à la console de votre hébergeur"
+echo "  2. Exécuter: ufw allow from <NOUVELLE_IP> to any port 22"
+echo "  3. Ou désactiver temporairement UFW: ufw disable"
 echo ""
 
 exit 0

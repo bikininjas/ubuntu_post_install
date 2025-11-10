@@ -72,6 +72,7 @@ echo ""
 
 # Liste des modules à exécuter (dans l'ordre)
 MODULES=(
+    "00-domain-config.sh"
     "01-base-system.sh"
     "02-dev-tools.sh"
     "03-docker.sh"
@@ -81,9 +82,11 @@ MODULES=(
     "07-gaming.sh"
     "08-security.sh"
     "09-update-checker.sh"
+    "10-letsencrypt.sh"
 )
 
-# Menu de sélection
+# Menu interactif
+echo ""# Menu de sélection
 echo -e "${YELLOW}Choisissez le type d'installation:${NC}"
 echo "1) Installation complète (tous les modules)"
 echo "2) Installation personnalisée (sélection des modules)"
@@ -141,6 +144,7 @@ log_info "L'installation va démarrer dans 3 secondes..."
 sleep 3
 
 # Mise à jour du système avant de commencer (seulement si le module 01 n'est pas sélectionné)
+# Le module 00 (domain-config) doit toujours s'exécuter en premier s'il est sélectionné
 if [[ ! " ${SELECTED_MODULES[*]} " == *" 01-base-system.sh "* ]]; then
     log_section "Mise à jour du système"
     log_info "Mise à jour des repositories apt..."

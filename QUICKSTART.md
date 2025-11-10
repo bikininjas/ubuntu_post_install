@@ -32,11 +32,12 @@ sudo ./post_install.sh
 
 ## 📋 Ce qui va se passer
 
-1. **Menu de sélection** : Choisissez entre installation complète ou personnalisée
-2. **Affichage des modules** : Vous verrez la liste des modules qui seront installés
-3. **Countdown** : 3 secondes avant le démarrage
-4. **Mot de passe** : Vous devrez créer un mot de passe pour l'utilisateur "seb"
-5. **Installation automatique** : Tout le reste se fait automatiquement !
+1. **Configuration du domaine** : Vous devrez entrer un nom de domaine pour le serveur (utilisé pour Nginx, Let's Encrypt, SSH)
+2. **Menu de sélection** : Choisissez entre installation complète ou personnalisée
+3. **Affichage des modules** : Vous verrez la liste des modules qui seront installés
+4. **Countdown** : 3 secondes avant le démarrage
+5. **Mot de passe** : Vous devrez créer un mot de passe pour l'utilisateur "seb"
+6. **Installation automatique** : Tout le reste se fait automatiquement !
 
 ## 💻 Installation complète en une ligne
 
@@ -45,6 +46,11 @@ Si vous préférez tout en une seule commande (sur un serveur neuf) :
 ```bash
 sudo apt update && sudo apt install -y git && git clone https://github.com/bikininjas/ubuntu_post_install.git && cd ubuntu_post_install && chmod +x post_install.sh modules/*.sh && sudo ./post_install.sh
 ```
+
+⚠️ **Important** : Vous devrez entrer :
+- Un nom de domaine (ex: example.com)
+- Un email pour Let's Encrypt
+- Un mot de passe pour l'utilisateur "seb"
 
 ## ⏱️ Durée estimée
 
@@ -55,6 +61,7 @@ sudo apt update && sudo apt install -y git && git clone https://github.com/bikin
 
 | Module | Temps estimé | Description |
 |--------|--------------|-------------|
+| **Domain Config** | 1 min | Configuration du domaine et hostname |
 | **Base System** | 2-3 min | Utilisateur, zsh, oh-my-zsh |
 | **Dev Tools** | 5-7 min | Python 3.13, Node.js, Go, Terraform |
 | **Docker** | 2-3 min | Docker CE + Compose |
@@ -62,8 +69,9 @@ sudo apt update && sudo apt install -y git && git clone https://github.com/bikin
 | **Web Server** | 2-3 min | Nginx + PHP |
 | **Media Tools** | 3-5 min | FFmpeg, codecs |
 | **Gaming** | 2-3 min | SteamCMD, LGSM |
-| **Security** | 1-2 min | UFW firewall |
+| **Security** | 1-2 min | UFW firewall (configuration stricte) |
 | **Update Checker** | 1 min | Système de mise à jour auto |
+| **Let's Encrypt** | 2-5 min | Certificats SSL automatiques |
 
 ## ✅ Après l'installation
 
@@ -195,13 +203,38 @@ Si vous voulez seulement certains composants :
 
 ## 🔒 Ce qui est fait automatiquement
 
+- ✅ Configuration du domaine et hostname
 - ✅ Mise à jour complète du système
 - ✅ Création de l'utilisateur "seb"
 - ✅ Configuration des permissions sudo
 - ✅ Installation de tous les outils sélectionnés
-- ✅ Configuration du firewall
+- ✅ Configuration du firewall (SSH limité à votre IP)
+- ✅ Génération des certificats SSL Let's Encrypt
 - ✅ Mise en place du système de mise à jour automatique
 - ✅ Nettoyage du cache apt
+
+## 🔐 Configuration de Sécurité Stricte
+
+Le script applique une configuration de sécurité renforcée :
+
+### SSH (Port 22)
+- ✅ **Accès LIMITÉ** à l'IP : `82.65.136.32` (votre IP de chez vous)
+- ⚠️ **Bloqué** depuis toutes les autres IP
+- 💡 Si vous changez d'IP, vous devrez accéder à la console de votre hébergeur
+
+### Ports Web (HTTP/HTTPS)
+- ✅ Port 80 (HTTP) : Ouvert à tous
+- ✅ Port 443 (HTTPS) : Ouvert à tous
+- 🔒 Certificats SSL automatiques via Let's Encrypt
+
+### Ports Gaming (Steam)
+- ✅ Port 27015 TCP/UDP : Steam SRCDS
+- ✅ Port 27005 UDP : Steam Client  
+- ✅ Port 27020 UDP : SourceTV
+
+### Ports de Développement (3000-9000)
+- ✅ Accessibles UNIQUEMENT depuis l'IP `82.65.136.32`
+- ⚠️ Bloqués depuis toutes les autres IP
 
 ## ⚠️ Important
 
@@ -210,16 +243,21 @@ Si vous voulez seulement certains composants :
 - [ ] Vérifiez l'espace disque disponible (10 GB minimum)
 - [ ] Sauvegardez vos données importantes
 - [ ] Notez votre mot de passe quelque part de sûr
+- [ ] **Configurez votre DNS** : Faites pointer votre domaine vers l'IP du serveur
+- [ ] **Notez votre IP** : L'IP 82.65.136.32 est autorisée pour SSH (modifiez si nécessaire)
 
 ### Pendant l'installation
 - ⏳ Ne fermez pas le terminal
 - ⏳ Ne mettez pas l'ordinateur en veille
 - ⏳ Laissez l'installation se terminer complètement
+- 📝 Ayez votre nom de domaine et email prêts
 
 ### Après l'installation
 - 🔄 Redémarrez pour appliquer tous les changements
 - 🔑 Testez votre nouveau mot de passe
 - ✅ Vérifiez que tout fonctionne
+- 🌐 Testez l'accès HTTPS à votre domaine
+- 🔒 **IMPORTANT** : Testez l'accès SSH depuis votre IP autorisée avant de vous déconnecter !
 
 ## 🎉 C'est tout !
 
