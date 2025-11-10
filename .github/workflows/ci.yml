@@ -1,0 +1,114 @@
+name: CI - Validation
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - **
+
+jobs:
+  shellcheck:
+    name: ShellCheck Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+          ignore_paths: .git .github
+          check_together: yes
+          
+  test-syntax:
+    name: Bash Syntax Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Check bash syntax
+        run: |
+          echo "Validating bash syntax for all scripts..."
+          find . -type f -name "*.sh" -not -path "./.git/*" | while read -r script; do
+            echo "Checking syntax: $script"
+            bash -n "$script" || exit 1
+          done
+          echo "✓ All scripts have valid bash syntax!"
+          
+  file-permissions:
+    name: Check File Permissions
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Verify executable permissions
+        run: |
+          echo "Checking that shell scripts are executable..."
+          
+          # Check main script
+          if [ ! -x "post_install.sh" ]; then
+            echo "❌ post_install.sh is not executable"
+            exit 1
+          fi
+          
+          # Check all module scripts
+          for script in modules/*.sh; do
+            if [ ! -x "$script" ]; then
+              echo "❌ $script is not executable"
+              exit 1
+            fi
+          done
+          
+          echo "✓ All scripts have correct permissions!"
+          
+  structure-validation:
+    name: Validate Project Structure
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Check required files and directories
+        run: |
+          echo "Validating project structure..."
+          
+          # Check required files
+          required_files=(
+            "post_install.sh"
+            "README.md"
+            "PROMPT.md"
+            ".gitignore"
+          )
+          
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Required file missing: $file"
+              exit 1
+            fi
+            echo "✓ Found: $file"
+          done
+          
+          # Check required directories
+          if [ ! -d "modules" ]; then
+            echo "❌ modules/ directory missing"
+            exit 1
+          fi
+          echo "✓ Found: modules/"
+          
+          # Check that modules directory is not empty
+          if [ -z "$(ls -A modules/*.sh 2>/dev/null)" ]; then
+            echo "❌ modules/ directory is empty"
+            exit 1
+          fi
+          echo "✓ modules/ contains shell scripts"
+          
+          echo "✓ Project structure is valid!"
