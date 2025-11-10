@@ -157,18 +157,31 @@ fi
 log_info "Installation des dépendances de base..."
 DEBIAN_FRONTEND=noninteractive apt install -y curl wget git build-essential software-properties-common apt-transport-https ca-certificates gnupg lsb-release
 
+# Créer un répertoire pour les logs
+LOG_DIR="/var/log/ubuntu-post-install"
+mkdir -p "${LOG_DIR}"
+MAIN_LOG="${LOG_DIR}/installation-$(date +%Y%m%d-%H%M%S).log"
+
+log_info "Logs détaillés: ${MAIN_LOG}"
+echo ""
+
 # Exécution des modules sélectionnés
 FAILED_MODULES=()
 SUCCESSFUL_MODULES=()
+declare -A MODULE_ERRORS  # Associative array pour stocker les erreurs
 
 for module in "${SELECTED_MODULES[@]}"; do
     module_path="${MODULES_DIR}/${module}"
     # shellcheck disable=SC2312
     module_name=$(basename "${module}" .sh | sed 's/^[0-9]*-//' | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
     
+    # Créer un fichier de log pour ce module
+    MODULE_LOG="${LOG_DIR}/${module%.sh}-$(date +%Y%m%d-%H%M%S).log"
+    
     if [[ ! -f "${module_path}" ]]; then
         log_error "Module non trouvé: ${module_path}"
         FAILED_MODULES+=("${module_name}")
+        MODULE_ERRORS["${module_name}"]="Fichier module introuvable: ${module_path}"
         continue
     fi
     
@@ -179,12 +192,34 @@ for module in "${SELECTED_MODULES[@]}"; do
     
     log_section "Exécution: ${module_name}"
     
-    if bash "${module_path}"; then
+    # Exécuter le module avec capture des erreurs et verbose
+    set +e  # Désactiver l'arrêt automatique pour ce module
+    bash -x "${module_path}" 2>&1 | tee "${MODULE_LOG}"
+    EXIT_CODE=${PIPESTATUS[0]}
+    set -e  # Réactiver l'arrêt automatique
+    
+    if [[ ${EXIT_CODE} -eq 0 ]]; then
         log_info "✓ Module ${module_name} terminé avec succès"
         SUCCESSFUL_MODULES+=("${module_name}")
     else
-        log_error "✗ Échec du module ${module_name}"
+        log_error "✗ Échec du module ${module_name} (code de sortie: ${EXIT_CODE})"
         FAILED_MODULES+=("${module_name}")
+        
+        # Capturer les dernières lignes d'erreur
+        ERROR_CONTEXT=$(tail -30 "${MODULE_LOG}" | grep -iE "(error|erreur|failed|échec|exception|cannot|unable|no such)" || tail -20 "${MODULE_LOG}")
+        MODULE_ERRORS["${module_name}"]="${ERROR_CONTEXT}"
+        
+        echo ""
+        log_error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        log_error "ERREUR DÉTAILLÉE - ${module_name}"
+        log_error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo -e "${YELLOW}Dernières lignes du log:${NC}"
+        echo "${ERROR_CONTEXT}"
+        log_error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        log_info "📁 Log complet: ${MODULE_LOG}"
+        log_info "💡 Pour voir: cat ${MODULE_LOG}"
+        echo ""
         
         log_warning "Continuation automatique malgré l'erreur..."
     fi
@@ -214,6 +249,30 @@ if [[ ${#FAILED_MODULES[@]} -gt 0 ]]; then
     for module in "${FAILED_MODULES[@]}"; do
         echo -e "  ${RED}✗${NC} ${module}"
     done
+    
+    echo ""
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}  DÉTAILS DES ERREURS${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    for module in "${FAILED_MODULES[@]}"; do
+        echo -e "${RED}▶ ${module}:${NC}"
+        if [[ -n "${MODULE_ERRORS[${module}]}" ]]; then
+            echo "${MODULE_ERRORS[${module}]}" | head -10
+        else
+            echo "  Aucun détail d'erreur disponible"
+        fi
+        echo ""
+    done
+    
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}📁 Logs complets disponibles dans:${NC} ${LOG_DIR}"
+    echo ""
+    echo -e "${CYAN}Pour voir les logs détaillés d'un module:${NC}"
+    echo "  ls -lht ${LOG_DIR}/"
+    echo "  cat ${LOG_DIR}/<nom-module>*.log"
+    echo ""
 fi
 
 echo ""
