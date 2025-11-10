@@ -139,7 +139,7 @@ log_info "L'installation va démarrer dans 3 secondes..."
 sleep 3
 
 # Mise à jour du système avant de commencer (seulement si le module 01 n'est pas sélectionné)
-if [[ ! " ${SELECTED_MODULES[*]} " =~ " 01-base-system.sh " ]]; then
+if [[ ! " ${SELECTED_MODULES[*]} " == *" 01-base-system.sh "* ]]; then
     log_section "Mise à jour du système"
     log_info "Mise à jour des repositories apt..."
     apt update

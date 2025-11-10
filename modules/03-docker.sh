@@ -49,6 +49,7 @@ chmod a+r /etc/apt/keyrings/docker.gpg
 log_info "Ajout du repository Docker..."
 # shellcheck disable=SC1091
 . /etc/os-release
+# shellcheck disable=SC2154
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   ${VERSION_CODENAME} stable" | \

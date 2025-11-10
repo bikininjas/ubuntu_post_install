@@ -37,16 +37,24 @@ if [[ ! " ${SELECTED_MODULES[*]} " =~ " 01-base-system.sh " ]]; then
 ### 3. ⚠️ post_install.sh:143:39 - Quotes dans regex
 **Warning** : `Remove quotes from right-hand side of =~ to match as a regex rather than literally. [SC2076]`
 
-**Status** : Pas de correction nécessaire
+**Correction** : Utilisation de pattern matching avec `==` au lieu de regex `=~`.
 
-**Explication** : Les guillemets sont intentionnels ici car nous voulons faire une correspondance littérale de la chaîne " 01-base-system.sh ", pas une regex. C'est un faux positif acceptable.
+```bash
+# Avant
+if [[ ! " ${SELECTED_MODULES[*]} " =~ " 01-base-system.sh " ]]; then
+
+# Après
+if [[ ! " ${SELECTED_MODULES[*]} " == *" 01-base-system.sh "* ]]; then
+```
+
+**Explication** : Pour une correspondance littérale de chaîne, utiliser `==` avec pattern matching plutôt que `=~` (qui est pour les regex). Cela évite le warning SC2076.
 
 ---
 
 ### 4. ❌ modules/03-docker.sh:52:32 - Variable VERSION_CODENAME non assignée
 **Erreur** : `VERSION_CODENAME is referenced but not assigned. [SC2154]`
 
-**Correction** : Source explicite de `/etc/os-release` avant d'utiliser la variable.
+**Correction** : Source explicite de `/etc/os-release` avant d'utiliser la variable + directives ShellCheck.
 
 ```bash
 # Avant
@@ -58,6 +66,7 @@ echo \
 # Après
 # shellcheck disable=SC1091
 . /etc/os-release
+# shellcheck disable=SC2154
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   ${VERSION_CODENAME} stable" | \
@@ -66,7 +75,8 @@ echo \
 
 **Explication** : 
 - Source `/etc/os-release` explicitement avant d'utiliser `VERSION_CODENAME`
-- Ajout de `# shellcheck disable=SC1091` car `/etc/os-release` n'est pas dans le dépôt
+- `# shellcheck disable=SC1091` : /etc/os-release n'est pas dans le dépôt
+- `# shellcheck disable=SC2154` : VERSION_CODENAME vient du fichier sourcé
 - Code plus lisible et plus facile à déboguer
 
 ---
@@ -93,11 +103,13 @@ UPDATE_FLAG="/var/run/updates-available"  # Utilisé dans les scripts générés
 
 | Fichier | Ligne | Type | Status |
 |---------|-------|------|--------|
-| post_install.sh | 16 | Erreur | ✅ Corrigé |
-| post_install.sh | 143 | Erreur | ✅ Corrigé |
-| post_install.sh | 143 | Warning | ⚠️ Acceptable |
-| modules/03-docker.sh | 52 | Warning | ✅ Corrigé |
-| modules/09-update-checker.sh | 25 | Warning | ✅ Corrigé |
+| post_install.sh | 16 | Warning | ✅ Corrigé (variable supprimée) |
+| post_install.sh | 142 | Error | ✅ Corrigé ([@] → [*]) |
+| post_install.sh | 142 | Warning | ✅ Corrigé (=~ → ==) |
+| modules/03-docker.sh | 52 | Warning | ✅ Corrigé (directives ShellCheck) |
+| modules/09-update-checker.sh | 25 | Warning | ✅ Corrigé (commentaire ajouté) |
+
+**Résultat** : ✅ **Tous les scripts passent ShellCheck sans erreurs ni warnings !**
 
 ## Tests recommandés
 
