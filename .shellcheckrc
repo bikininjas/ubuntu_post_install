@@ -1,0 +1,22 @@
+# ShellCheck Configuration
+# Documentation: https://github.com/koalaman/shellcheck/wiki
+
+# Disable specific warnings globally
+
+# SC2162: read without -r will mangle backslashes
+# Disabled because we use read -s -p for password input
+disable=SC2162
+
+# SC1090: Can't follow non-constant source
+# Disabled because we source dynamic paths
+disable=SC1090
+
+# SC1091: Not following sourced file
+# Disabled because sourced files may not exist during linting
+disable=SC1091
+
+# Enable all optional checks
+enable=all
+
+# Set shell directive (bash)
+shell=bash
