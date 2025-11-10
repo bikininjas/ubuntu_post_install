@@ -37,7 +37,7 @@ log_section() {
 }
 
 # Vérification des privilèges root
-if [ "$EUID" -ne 0 ]; then 
+if [[ "${EUID}" -ne 0 ]]; then 
     log_error "Ce script doit être exécuté en tant que root (sudo)"
     exit 1
 fi
@@ -47,7 +47,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODULES_DIR="$SCRIPT_DIR/modules"
 
 # Vérification de l'existence du dossier modules
-if [ ! -d "$MODULES_DIR" ]; then
+if [[ ! -d "${MODULES_DIR}" ]]; then
     log_error "Le dossier modules/ n'existe pas dans $SCRIPT_DIR"
     exit 1
 fi
@@ -121,7 +121,7 @@ case $INSTALL_CHOICE in
 esac
 
 # Vérification que des modules ont été sélectionnés
-if [ ${#SELECTED_MODULES[@]} -eq 0 ]; then
+if [[ ${#SELECTED_MODULES[@]} -eq 0 ]]; then
     log_warning "Aucun module sélectionné. Installation annulée."
     exit 0
 fi
@@ -159,13 +159,13 @@ for module in "${SELECTED_MODULES[@]}"; do
     module_path="$MODULES_DIR/$module"
     module_name=$(basename "$module" .sh | sed 's/^[0-9]*-//' | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
     
-    if [ ! -f "$module_path" ]; then
+    if [[ ! -f "${module_path}" ]]; then
         log_error "Module non trouvé: $module_path"
         FAILED_MODULES+=("$module_name")
         continue
     fi
     
-    if [ ! -x "$module_path" ]; then
+    if [[ ! -x "${module_path}" ]]; then
         log_warning "Le module $module n'est pas exécutable, ajout des permissions..."
         chmod +x "$module_path"
     fi
@@ -194,14 +194,14 @@ apt autoclean
 # Rapport final
 log_section "Rapport d'Installation"
 
-if [ ${#SUCCESSFUL_MODULES[@]} -gt 0 ]; then
+if [[ ${#SUCCESSFUL_MODULES[@]} -gt 0 ]]; then
     echo -e "${GREEN}Modules installés avec succès:${NC}"
     for module in "${SUCCESSFUL_MODULES[@]}"; do
         echo -e "  ${GREEN}✓${NC} $module"
     done
 fi
 
-if [ ${#FAILED_MODULES[@]} -gt 0 ]; then
+if [[ ${#FAILED_MODULES[@]} -gt 0 ]]; then
     echo ""
     echo -e "${RED}Modules en échec:${NC}"
     for module in "${FAILED_MODULES[@]}"; do
@@ -233,7 +233,7 @@ echo "4. Consultez les logs en cas de problème:"
 echo -e "   ${YELLOW}sudo journalctl -xe${NC}"
 echo ""
 
-if [ ${#FAILED_MODULES[@]} -eq 0 ]; then
+if [[ ${#FAILED_MODULES[@]} -eq 0 ]]; then
     echo -e "${GREEN}✓ Toutes les installations ont réussi!${NC}"
     exit 0
 else
