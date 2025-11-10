@@ -1,256 +1,394 @@
-# Ubuntu Server Setup (for Everyone)
+# 🚀 Ubuntu 24.04 Post-Installation Script
 
-This project helps you set up your Ubuntu server automatically. You don't need to be a computer expert!
+Scripts automatisés modulaires pour configurer un serveur Ubuntu 24.04 LTS fraîchement installé avec tous les outils nécessaires pour le développement, l'hébergement web, le traitement média et le gaming.
 
-## Requirements
+## 📋 Table des Matières
 
-- The playbook will automatically install [UFW (Uncomplicated Firewall)](https://help.ubuntu.com/community/UFW) if it is not present. No manual action is needed.
+- [Fonctionnalités](#-fonctionnalités)
+- [Prérequis](#-prérequis)
+- [Installation Rapide](#-installation-rapide)
+- [Installation Modulaire](#-installation-modulaire)
+- [Modules Disponibles](#-modules-disponibles)
+- [Configuration](#-configuration)
+- [Utilisation](#-utilisation)
+- [Système de Mise à Jour Automatique](#-système-de-mise-à-jour-automatique)
+- [Sécurité](#-sécurité)
+- [Dépannage](#-dépannage)
+- [Contribution](#-contribution)
 
-## Quick Start
+## 🎯 Fonctionnalités
 
-1. **Install Ansible**
+### Système de Base
+- ✅ Création de l'utilisateur `seb` avec privilèges sudo configurés
+- ✅ Shell zsh avec oh-my-zsh (thème powerlevel10k)
+- ✅ Structure de dossiers personnalisée (GITRepos)
+- ✅ Configuration Git globale
+- ✅ Mise à jour automatique des packages au démarrage
+- ✅ **Vérification automatique des mises à jour tous les 4 jours**
+- ✅ **Rappel coloré à chaque connexion SSH si mises à jour disponibles**
 
-   Open a terminal and type:
+### Outils de Développement
+- ✅ Python 3.13 (avec venv et pip)
+- ✅ GitHub CLI (dernière version)
+- ✅ Node.js (dernière version via bun)
+- ✅ Golang (dernière version)
+- ✅ Terraform (dernière version)
 
+### Infrastructure
+- ✅ Docker CE (dernière version gratuite, mise à jour via apt)
+- ✅ Docker Compose Plugin
+- ✅ MySQL/MariaDB
+- ✅ PostgreSQL
+- ✅ Nginx (avec configuration pour WordPress et Node.js)
+
+### Média
+- ✅ FFmpeg (avec x264, x265, libvpx)
+- ✅ Outils d'encodage audio/vidéo complets
+
+### Gaming
+- ✅ SteamCMD
+- ✅ LGSM (Linux Game Server Manager)
+
+### Monitoring & Sécurité
+- ✅ Netdata (monitoring temps réel)
+- ✅ UFW (Firewall configuré)
+- ✅ Système de mise à jour automatique avec notifications
+
+## 🔧 Prérequis
+
+- Ubuntu 24.04 LTS fraîchement installé
+- Accès root ou sudo
+- Connexion Internet stable
+- Au moins 10 GB d'espace disque libre
+- 2 GB de RAM minimum (4 GB recommandé)
+
+## ⚡ Installation Rapide
+
+```bash
+# 1. Cloner le repository
+git clone https://github.com/bikininjas/ubuntu_post_install.git
+cd ubuntu_post_install
+
+# 2. Rendre les scripts exécutables
+chmod +x post_install.sh
+chmod +x modules/*.sh
+
+# 3. Exécuter l'installation complète (en tant que root)
+sudo ./post_install.sh
+```
+
+Le script vous proposera deux options :
+1. **Installation complète** : Tous les modules seront installés
+2. **Installation personnalisée** : Vous choisissez les modules à installer
+
+Le script vous demandera de définir un mot de passe pour l'utilisateur `seb`.
+
+## 🎛️ Installation Modulaire
+
+Vous pouvez exécuter les modules individuellement selon vos besoins :
+
+```bash
+# Installer uniquement les outils de développement
+sudo ./modules/02-dev-tools.sh
+
+# Installer uniquement Docker
+sudo ./modules/03-docker.sh
+
+# Installer uniquement le serveur web
+sudo ./modules/05-web-server.sh
+
+# Installer le système de mise à jour automatique
+sudo ./modules/09-update-checker.sh
+```
+
+## 📦 Modules Disponibles
+
+| Module | Description | Fichier |
+|--------|-------------|---------|
+| **Base System** | Configuration utilisateur, zsh, oh-my-zsh | `01-base-system.sh` |
+| **Dev Tools** | Python 3.13, Node.js, Go, Terraform, GitHub CLI | `02-dev-tools.sh` |
+| **Docker** | Docker CE + Docker Compose Plugin | `03-docker.sh` |
+| **Databases** | MySQL/MariaDB + PostgreSQL | `04-databases.sh` |
+| **Web Server** | Nginx + configuration sites | `05-web-server.sh` |
+| **Media Tools** | FFmpeg, codecs vidéo/audio | `06-media-tools.sh` |
+| **Gaming** | SteamCMD, LGSM | `07-gaming.sh` |
+| **Security** | UFW, configuration firewall | `08-security.sh` |
+| **Update Checker** | Système de vérification automatique des mises à jour | `09-update-checker.sh` |
+
+## ⚙️ Configuration
+
+### Variables Principales
+
+Les variables sont définies au début de chaque script. Les principales sont :
+
+```bash
+TARGET_USER="seb"
+GIT_USER="SebPikPik"
+GIT_EMAIL="sebpicot@gmail.com"
+GITREPOS_DIR="/home/seb/GITRepos"
+```
+
+### Permissions Sudo
+
+L'utilisateur `seb` peut exécuter **sans mot de passe** :
+- Toutes les commandes `apt` (install, update, upgrade, etc.)
+- Toutes les commandes `docker`
+
+Pour les autres commandes sudo, le mot de passe sera demandé.
+
+### Ports Ouverts (UFW)
+
+Par défaut, les ports suivants seront ouverts :
+- `22` - SSH
+- `80` - HTTP
+- `443` - HTTPS
+- `3000` - Node.js (dev)
+- `8080` - Applications web alternatives
+
+## 💻 Utilisation
+
+### Après Installation
+
+1. **Se connecter avec le nouvel utilisateur** :
    ```bash
-   pip install ansible
+   su - seb
+   # ou redémarrer et se connecter en tant que seb
    ```
 
-2. **Download this project**
-
-   In the terminal, type:
-
+2. **Vérifier l'installation** :
    ```bash
-   git clone https://github.com/bikininjas/ubuntu_post_install.git
-   cd ubuntu_post_install
-   ```
-
-3. **Tell the computer about your server**
-
-   Open the file called `inventory` in a text editor. Add your server's address (ask someone if you don't know it).
+   # Vérifier zsh
+   echo $SHELL
    
-4. **Run the setup**
-
-   In the terminal, type:
-
-   ```bash
-   ansible-playbook -i inventory playbook.yml
-   ```
-
-5. **Check your work (optional, but recommended!)**
-
-   In the terminal, type:
-
-   ```bash
-   ./local-validation.sh
-   ```
-
-   If you see "Validation complete" and no errors, everything is good!
-
----
-
-## What does this do?
-
-- Makes your server safer
-- Installs useful programs (like Docker, Git, Python, Node.js)
-- Sets up web management and monitoring
-- Keeps your server up to date
-
----
-
-## GitHub Actions
-
-This project includes a GitHub Actions workflow that will run automatically on every push to this repository. It checks your setup and helps keep everything working.
-
----
-
-## Need help?
-
-Ask a friend or family member who knows computers, or open an issue on GitHub.
-
----
-
-Maintained by bikininjas
-
-Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS). Automates security, monitoring, web management, and development tool setup.
-This repository provides a comprehensive Ansible playbook and roles to automate the post-installation configuration of Ubuntu servers (VPS). It includes tasks for security hardening, monitoring setup, web management, and development tool installation.
-
-## Local Validation
-
-After making changes, you can validate your playbook and roles locally:
-
-```bash
-
-./validate.sh
-```
-
-This script will:
-
-- Run an Ansible syntax check
-- Run ansible-lint (if installed)
-- Run a dry-run (check mode) of your playbook
-
-If you see no errors, your playbook is ready!
-
-This script will:
-
-- Run an Ansible syntax check
-- Run ansible-lint (if installed)
-- Run a dry-run (check mode) of your playbook
-
-If you see no errors, your playbook is ready!
-
-## Description
-
-Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS).
-Automates security, monitoring, web management, and development tool setup.
-
-Ansible playbook and roles for post-install configuration of Ubuntu servers (VPS). Automates security, monitoring, web management, and development tool setup.
-
-## Usage
-
-1. Clone this repository:
-
-   ```bash
-   git clone https://github.com/bikininjas/ubuntu_post_install.git
-   cd ubuntu_post_install
-   ```
-
-2. Edit `inventory` to add your server(s) under the `[vps]` group.
-
-3. Edit `playbook.yml` as needed (e.g., set `ssh_port`).
-
-4. Run the playbook:
-
-   ```bash
-   ansible-playbook -i inventory playbook.yml
-   ```
+   # Vérifier Docker
+   docker --version
+   docker compose version
    
-### Optional: Create the 'seb' user
+   # Vérifier Python
+   python3.13 --version
+   
+   # Vérifier Node.js
+   node --version
+   bun --version
+   
+   # Vérifier Go
+   go version
+   
+   # Vérifier Terraform
+   terraform --version
+   ```
 
-You can optionally create a user named `seb` with sudo privileges (NOPASSWD) by
-setting the `create_seb_user` variable to `true` and providing a password via the
-`seb_password` variable. This is supported both locally and in the GitHub Actions
-workflow.
+3. **Utiliser Docker sans sudo** :
+   ```bash
+   docker ps
+   docker run hello-world
+   ```
+
+### Exemples d'Utilisation
+
+#### Héberger un Site WordPress
 
 ```bash
-ansible-playbook -i inventory playbook.yml --extra-vars "create_seb_user=true seb_password='yourpassword'"
+# Exemple avec Docker Compose
+cd ~/GITRepos
+mkdir mon-wordpress
+cd mon-wordpress
+
+# Créer un docker-compose.yml
+# Nginx est déjà installé pour le reverse proxy
 ```
 
-**In GitHub Actions:**
+#### Créer un Serveur de Jeu
 
-If you do not want to create the user, leave `create_seb_user` as `false` (default).
+```bash
+# LGSM est déjà installé
+# Exemple pour un serveur CS:GO
+su - seb
+./linuxgsm.sh csgoserver
+```
 
-**In GitHub Actions:**
-When running the workflow manually, you will be prompted for:
+## 🔄 Système de Mise à Jour Automatique
 
-- `create_seb_user`: Set to `true` to create the user
+Le module `09-update-checker.sh` configure un système complet de gestion des mises à jour. **Voir la documentation détaillée : [UPDATE_SYSTEM.md](UPDATE_SYSTEM.md)**
 
-1. Clone this repository:
+### Résumé des fonctionnalités
 
+- ✅ Mise à jour initiale au démarrage du script
+- ✅ Vérification automatique tous les 4 jours (cron + systemd timer)
+- ✅ Rappel coloré à chaque connexion SSH si des mises à jour sont disponibles
+- ✅ Alerte spéciale pour les mises à jour de sécurité
+- ✅ Logs persistants de toutes les vérifications
+
+### Commandes rapides
+
+```bash
+# Vérifier manuellement les mises à jour
+check-updates
+
+# Mettre à jour le système
+update-system
+
+# Voir le log des vérifications
+update-log
+```
+
+### Exemple de rappel
+
+```
+╔════════════════════════════════════════════════════════════╗
+║  ⚠️  MISES À JOUR DISPONIBLES                              ║
+║  🔒 5 mises à jour de SÉCURITÉ                             ║
+║  📦 23 packages peuvent être mis à jour                    ║
+║  Pour mettre à jour, exécutez:                            ║
+║  sudo apt update && sudo apt upgrade -y                    ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+## 🔒 Sécurité
+
+### Bonnes Pratiques Implémentées
+
+- ✅ Utilisateur non-root pour les opérations quotidiennes
+- ✅ Sudo limité aux commandes nécessaires (apt, docker)
+- ✅ Firewall UFW activé et configuré
+- ✅ Services exposés uniquement sur les ports nécessaires
+- ✅ Pas de mots de passe en clair dans les scripts
+- ✅ Vérification automatique des mises à jour de sécurité
+
+### Recommandations Supplémentaires
+
+1. **Configurer l'authentification SSH par clé** :
    ```bash
-   cd ubuntu_post_install
+   ssh-keygen -t ed25519 -C "sebpicot@gmail.com"
+   # Copier la clé publique vers le serveur
    ```
 
-2. Edit `inventory` to add your server(s) under the `[vps]` group.
-
-3. Run the playbook:
-
+2. **Désactiver l'authentification par mot de passe SSH** :
    ```bash
-   ansible-playbook -i inventory playbook.yml
+   sudo nano /etc/ssh/sshd_config
+   # PasswordAuthentication no
+   sudo systemctl restart sshd
    ```
 
-- `common`: System update and cleanup
-- `security`: SSH hardening, UFW firewall
-- `web_management`: Cockpit installation
-- `monitoring`: Fail2ban setup
-- `dev_tools`: Installs Git, Go, Node.js, Python, Docker
+3. **Configurer Fail2ban** (non inclus par défaut) :
+   ```bash
+   sudo apt install fail2ban
+   sudo systemctl enable fail2ban
+   ```
 
-- `common`: System update and cleanup
-- `security`: SSH hardening, UFW firewall
-- `web_management`: Cockpit installation
-- `monitoring`: Fail2ban setup
-- `dev_tools`: Installs Git, Go, Node.js, Python, Docker
+4. **Mises à jour régulières** :
+   ```bash
+   # Maintenant automatisé avec le module 09!
+   # Ou manuellement :
+   update-system
+   ```
 
-## Notes
+## 🐛 Dépannage
 
-- Ensure you have Ansible installed: `pip install ansible`
-- Run as a user with sudo privileges.
-- The playbook now sets the timezone to Europe/Paris and system language to
-  English (en_US.UTF-8) on all servers (common role).
-- All apt packages are updated before any roles run (pre-task in playbook).
-- Docker repository setup is compatible with Ubuntu 22.04+ (uses signed-by keyring).
-- After all roles, the playbook runs post-setup checks to ensure SSH is not open
-  on port 22, HTTP/HTTPS are open, and only expected ports are accessible (see
-  common/tasks/verify.yml).
-- Each role now includes cleanup steps to remove old/conflicting packages and
-  configurations before installing or configuring new ones. This ensures a clean,
-  idempotent setup every time.
+### Erreur : "Permission denied"
 
-- Ensure you have Ansible installed: `pip install ansible`
-- Run as a user with sudo privileges.
-- The playbook now sets the timezone to Europe/Paris and system language to English (en_US.UTF-8) on all servers (common role).
-- All apt packages are updated before any roles run (pre-task in playbook).
-- Docker repository setup is compatible with Ubuntu 22.04+ (uses signed-by keyring).
-- After all roles, the playbook runs post-setup checks to ensure SSH is not open on port 22, HTTP/HTTPS are open, and only expected ports are accessible (see common/tasks/verify.yml).
-- Each role now includes cleanup steps to remove old/conflicting packages and configurations before installing or configuring new ones. This ensures a clean, idempotent setup every time.
+```bash
+# Vérifier que les scripts sont exécutables
+chmod +x post_install.sh modules/*.sh
 
-- UFW rules for HTTP/HTTPS use port numbers (80, 443) instead of application names because UFW profiles 'http' and 'https' may not exist on all systems.
+# Exécuter avec sudo
+sudo ./post_install.sh
+```
+
+### Docker ne fonctionne pas après installation
+
+```bash
+# Se déconnecter et se reconnecter pour que les groupes soient appliqués
+exit
+su - seb
+
+# Ou redémarrer la session
+```
+
+### Zsh ne se lance pas automatiquement
+
+```bash
+# Vérifier le shell par défaut
+echo $SHELL
+
+# Si ce n'est pas zsh, le définir manuellement
+chsh -s $(which zsh)
+```
+
+### Python 3.13 non trouvé
+
+```bash
+# Vérifier si le PPA a été ajouté
+apt-cache policy python3.13
+
+# Réinstaller si nécessaire
+sudo ./modules/02-dev-tools.sh
+```
+
+### Le rappel de mise à jour ne s'affiche pas
+
+```bash
+# Vérifier si le module a été exécuté
+ls -l /etc/profile.d/update-reminder.sh
+
+# Tester manuellement
+bash /etc/profile.d/update-reminder.sh
+
+# Voir la documentation détaillée
+cat UPDATE_SYSTEM.md
+```
+
+### Problèmes de compilation FFmpeg
+
+FFmpeg nécessite beaucoup de ressources. Si la compilation échoue :
+- Vérifiez l'espace disque : `df -h`
+- Vérifiez la RAM : `free -h`
+- Utilisez la version des repositories : `sudo apt install ffmpeg`
+
+## 📝 Logs
+
+Les logs d'installation sont visibles directement dans le terminal. Pour plus de détails en mode debug :
+
+```bash
+sudo bash -x ./post_install.sh 2>&1 | tee install.log
+```
+
+## 📚 Documentation Supplémentaire
+
+- [UPDATE_SYSTEM.md](UPDATE_SYSTEM.md) - Documentation complète du système de mise à jour automatique
+- [PROMPT.md](PROMPT.md) - Instructions pour une autre IA qui prendrait le relais
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues ! 
+
+1. Fork le projet
+2. Créer une branche (`git checkout -b feature/amelioration`)
+3. Commit les changements (`git commit -am 'Ajout fonctionnalité'`)
+4. Push vers la branche (`git push origin feature/amelioration`)
+5. Créer une Pull Request
+
+## 📄 Licence
+
+Ce projet est libre d'utilisation pour usage personnel et commercial.
+
+## 👤 Auteur
+
+**Seb**
+- GitHub: [@bikininjas](https://github.com/bikininjas)
+- Email: sebpicot@gmail.com
+
+## 🙏 Remerciements
+
+- Oh My Zsh community
+- Docker team
+- LGSM developers
+- FFmpeg contributors
+- Ubuntu community
 
 ---
 
-Maintained by bikininjas
+**Note** : Testez toujours ces scripts dans un environnement de développement avant de les utiliser en production !
 
-## Using SSH Keys with GitHub Actions (webfactory/ssh-agent)
-
-To allow GitHub Actions to connect to your server via SSH, you need to generate an SSH key, add it to your server, and add the private key as a GitHub secret:
-
-### 1. Generate an SSH key on your local machine or server
-
-```bash
-ssh-keygen -t ed25519 -C "github-actions-vps" -f ~/.ssh/github-actions-vps
-```
-
-Press Enter to skip the passphrase (recommended for automation).
-
-### 2. Add the public key to your server's authorized_keys
-
-```bash
-cat ~/.ssh/github-actions-vps.pub | ssh youruser@yourserver 'cat >> ~/.ssh/authorized_keys'
-```
-
-### 3. Add the private key to your GitHub repository secrets
-
-- Open the private key file:
-  
-  ```bash
-  cat ~/.ssh/github-actions-vps
-  ```
-
-- Copy the entire contents.
-- Go to your GitHub repository → Settings → Secrets and variables → Actions → New repository secret.
-- Name it `VPSZ_SSH_KEY` and paste the private key contents.
-
-### 4. The workflow will use this secret automatically
-
-Your workflow already uses:
-
-```yaml
-with:
-  ssh-private-key: ${{ secrets.VPSZ_SSH_KEY }}
-```
-
-This repository includes a GitHub Actions workflow to automate VPS configuration using Ansible:
-
-- **Manual trigger**: Go to the "Actions" tab and run the `Configure VPS` workflow.
-- **Two-step process**:
-  1. Changes the SSH port (connects on port 22, runs only security tasks).
-  2. Provisions the server (connects on the new port, runs all other tasks).
-- **Secrets required**:
-  - `VPSZ_SSH_KEY`: Your private SSH key for the VPS.
-  - `VPS_HOST`: The IP or hostname of your VPS.
-  - `VPS_USER`: The SSH username.
-
-- **Caching**: The workflow caches Python pip modules to speed up Ansible installation.
-
-See `.github/workflows/configure-vps.yml` for details.
+**Version** : 1.0.0  
+**Dernière mise à jour** : 2025-11-10

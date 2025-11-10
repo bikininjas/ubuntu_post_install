@@ -205,3 +205,41 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+
+# Ubuntu Post-Install Scripts
+# Logs d'installation
+*.log
+install.log
+
+# Fichiers temporaires
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Backups
+*.backup
+*.bak
+*.old
+README.old.md
+
+# Fichiers de configuration personnels
+config/*.local
+config/*.personal
+
+# Secrets et mots de passe
+secrets/
+*.key
+*.pem
+*.crt
+.env.local
+.env.production
+
+# SSH keys
+id_rsa*
+*.pub

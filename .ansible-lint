@@ -1,6 +1,0 @@
----
-# .ansible-lint
-
-exclude_paths: 
-  - .github/workflows/
-  - .ansible-lint

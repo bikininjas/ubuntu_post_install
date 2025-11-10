@@ -1,2 +1,0 @@
-[vps]
-${{ secrets.VPS_HOST }} ansible_user=${{ secrets.VPS_USER }}

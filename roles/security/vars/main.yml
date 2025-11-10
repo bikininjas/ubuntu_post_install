@@ -1,4 +1,0 @@
----
-# Security role variables
-security_packages:
-  - ufw
