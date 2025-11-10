@@ -22,7 +22,8 @@ log_info "Configuration du système de vérification des mises à jour..."
 # Variables
 UPDATE_CHECK_SCRIPT="/usr/local/bin/check-updates.sh"
 UPDATE_LOG="/var/log/update-checker.log"
-UPDATE_FLAG="/var/run/updates-available"
+# shellcheck disable=SC2034
+UPDATE_FLAG="/var/run/updates-available"  # Utilisé dans les scripts générés
 
 # Créer le script de vérification des mises à jour
 log_info "Création du script de vérification..."
