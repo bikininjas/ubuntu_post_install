@@ -243,3 +243,13 @@ secrets/
 # SSH keys
 id_rsa*
 *.pub
+
+# GitHub Actions artifacts
+.github/workflows/*.log
+
+# ShellCheck cache
+.shellcheck/
+
+# Test artifacts
+test-results/
+coverage/
