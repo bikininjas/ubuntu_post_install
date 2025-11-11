@@ -26,17 +26,26 @@ fi
 
 log_info "=== Installation des Outils Gaming ==="
 
-# 1. Activer l'architecture i386 (32-bit) nécessaire pour SteamCMD
+# 1. Activer l'architecture i386 (32-bit) nécessaire pour SteamCMD et LGSM
 log_info "Activation de l'architecture i386..."
 dpkg --add-architecture i386
+
+# 2. Mise à jour des repositories avec i386
+log_info "Mise à jour des repositories..."
 apt update
 
-# 2. Pré-accepter la licence Steam pour installation non-interactive
+# 3. Installation des dépendances de base requises par LGSM (avant SteamCMD)
+log_info "Installation des dépendances de base pour LGSM..."
+DEBIAN_FRONTEND=noninteractive apt install -y \
+    bsdmainutils \
+    unzip
+
+# 4. Pré-accepter la licence Steam pour installation non-interactive
 log_info "Pré-acceptation de la licence Steam..."
 echo steam steam/question select "I AGREE" | debconf-set-selections
 echo steam steam/license note '' | debconf-set-selections
 
-# 3. Installation des dépendances SteamCMD
+# 5. Installation des dépendances SteamCMD
 log_info "Installation des dépendances SteamCMD..."
 DEBIAN_FRONTEND=noninteractive apt install -y \
     lib32gcc-s1 \
@@ -46,7 +55,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
 
 log_info "✓ SteamCMD installé"
 
-# 4. Installation des dépendances LGSM
+# 6. Installation des dépendances LGSM complètes
 log_info "Installation des dépendances LGSM..."
 DEBIAN_FRONTEND=noninteractive apt install -y \
     curl \
@@ -55,8 +64,6 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
     tar \
     bzip2 \
     gzip \
-    unzip \
-    bsdmainutils \
     python3 \
     util-linux \
     ca-certificates \
@@ -79,7 +86,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
 
 log_info "✓ Dépendances LGSM installées"
 
-# 5. Créer un répertoire pour les serveurs de jeu
+# 7. Créer un répertoire pour les serveurs de jeu
 if id "$TARGET_USER" &>/dev/null; then
     GAME_DIR="/home/$TARGET_USER/gameservers"
     
@@ -96,7 +103,7 @@ else
     log_warning "L'utilisateur $TARGET_USER n'existe pas, LGSM non configuré"
 fi
 
-# 6. Créer un script d'aide
+# 8. Créer un script d'aide
 if id "$TARGET_USER" &>/dev/null; then
     HELP_FILE="$GAME_DIR/README.txt"
     cat > "$HELP_FILE" << 'EOF'

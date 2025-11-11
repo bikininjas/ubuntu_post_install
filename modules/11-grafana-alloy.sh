@@ -108,6 +108,52 @@ DEBIAN_FRONTEND=noninteractive apt install -y alloy
 log_info "✓ Grafana Alloy installé"
 alloy --version
 
+# 1.5. Installation des outils de monitoring de la qualité de code
+log_section "Installation des outils de qualité de code"
+
+log_info "Installation de ShellCheck (vérification scripts Bash)..."
+DEBIAN_FRONTEND=noninteractive apt install -y shellcheck
+
+log_info "Installation de Python et outils linting Python..."
+DEBIAN_FRONTEND=noninteractive apt install -y \
+    python3-pip \
+    pylint \
+    python3-autopep8 \
+    python3-flake8
+
+# Black (formatage Python) via pip pour avoir la dernière version
+log_info "Installation de Black (formatage Python)..."
+pip3 install --break-system-packages black 2>/dev/null || pip3 install black
+
+log_info "Installation d'outils supplémentaires..."
+# yamllint pour fichiers YAML (Docker Compose, Kubernetes, etc.)
+DEBIAN_FRONTEND=noninteractive apt install -y yamllint
+
+# hadolint pour Dockerfiles (via binary)
+log_info "Installation de Hadolint (linting Dockerfiles)..."
+wget -q -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+chmod +x /usr/local/bin/hadolint
+
+# markdownlint-cli pour fichiers Markdown (via npm si Node.js installé)
+if command -v npm &> /dev/null; then
+    log_info "Installation de markdownlint (linting Markdown)..."
+    npm install -g markdownlint-cli 2>/dev/null || log_warning "markdownlint non installé (npm requis)"
+fi
+
+log_info "✓ Outils de qualité de code installés"
+echo ""
+log_info "Versions installées:"
+echo "  - ShellCheck: $(shellcheck --version | grep version | awk '{print $2}')"
+echo "  - Black: $(black --version | head -1)"
+echo "  - Pylint: $(pylint --version | head -1)"
+echo "  - Flake8: $(flake8 --version)"
+echo "  - yamllint: $(yamllint --version)"
+echo "  - Hadolint: $(hadolint --version)"
+if command -v markdownlint &> /dev/null; then
+    echo "  - markdownlint: $(markdownlint --version)"
+fi
+echo ""
+
 # 2. Configuration de Grafana Alloy
 log_info "Configuration de Grafana Alloy pour Grafana Cloud..."
 
@@ -265,16 +311,100 @@ loki.process "default" {
   forward_to = [loki.relabel.integrations_node_exporter.receiver]
 }
 
-// Collecte des fichiers de logs (/var/log)
-local.file_match "default" {
+// ============================================================================
+// COLLECTE DES LOGS (Multiples sources)
+// ============================================================================
+
+// Logs système principaux
+local.file_match "system_logs" {
   path_targets = [{
     __address__ = "localhost",
-    __path__    = "/var/log/{syslog,messages,*.log}",
+    __path__    = "/var/log/{syslog,kern.log,auth.log,daemon.log,user.log}",
+    job         = "system",
   }]
 }
 
-loki.source.file "default" {
-  targets    = local.file_match.default.targets
+// Logs services web (Nginx, Apache, PHP)
+local.file_match "web_logs" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__    = "/var/log/nginx/{access,error}.log",
+    job         = "nginx",
+  }, {
+    __address__ = "localhost",
+    __path__    = "/var/log/php*.log",
+    job         = "php",
+  }]
+}
+
+// Logs bases de données
+local.file_match "database_logs" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__    = "/var/log/postgresql/postgresql-*.log",
+    job         = "postgresql",
+  }, {
+    __address__ = "localhost",
+    __path__    = "/var/log/mysql/{error,slow}.log",
+    job         = "mysql",
+  }]
+}
+
+// Logs Docker
+local.file_match "docker_logs" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__    = "/var/lib/docker/containers/*/*-json.log",
+    job         = "docker",
+  }]
+}
+
+// Logs sécurité (Fail2ban, UFW)
+local.file_match "security_logs" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__    = "/var/log/fail2ban.log",
+    job         = "fail2ban",
+  }, {
+    __address__ = "localhost",
+    __path__    = "/var/log/ufw.log",
+    job         = "ufw",
+  }]
+}
+
+// Logs utilisateur et serveurs de jeu (LGSM)
+local.file_match "user_logs" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__    = "/home/*/log/*.log",
+    job         = "lgsm",
+  }, {
+    __address__ = "localhost",
+    __path__    = "/home/*/gameservers/*/*.log",
+    job         = "gameserver",
+  }]
+}
+
+// Logs génériques (tout le reste)
+local.file_match "generic_logs" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__    = "/var/log/*.log",
+    job         = "system-generic",
+  }]
+}
+
+// Source principale pour tous les logs fichiers
+loki.source.file "all_logs" {
+  targets = concat(
+    local.file_match.system_logs.targets,
+    local.file_match.web_logs.targets,
+    local.file_match.database_logs.targets,
+    local.file_match.docker_logs.targets,
+    local.file_match.security_logs.targets,
+    local.file_match.user_logs.targets,
+    local.file_match.generic_logs.targets,
+  )
   forward_to = [loki.relabel.integrations_node_exporter.receiver]
 }
 
@@ -288,7 +418,85 @@ chown alloy:alloy "${CONFIG_FILE}"
 
 log_info "✓ Configuration créée : ${CONFIG_FILE}"
 
-# 3. Valider la configuration
+# 3. Configurer les permissions pour les logs
+log_info "Configuration des permissions pour les logs..."
+
+# Groupes système essentiels
+usermod -a -G adm alloy 2>/dev/null || log_warning "Groupe adm non disponible"
+usermod -a -G systemd-journal alloy 2>/dev/null || log_warning "Groupe systemd-journal non disponible"
+
+# Services web
+if getent group www-data > /dev/null 2>&1; then
+    usermod -a -G www-data alloy 2>/dev/null || true
+    log_info "  ✓ Groupe www-data ajouté (Nginx, PHP-FPM)"
+fi
+
+# Docker
+if getent group docker > /dev/null 2>&1; then
+    usermod -a -G docker alloy 2>/dev/null || true
+    log_info "  ✓ Groupe docker ajouté"
+fi
+
+# Bases de données
+if getent group mysql > /dev/null 2>&1; then
+    usermod -a -G mysql alloy 2>/dev/null || true
+    log_info "  ✓ Groupe mysql ajouté (MariaDB)"
+fi
+
+if getent group postgres > /dev/null 2>&1; then
+    usermod -a -G postgres alloy 2>/dev/null || true
+    log_info "  ✓ Groupe postgres ajouté (PostgreSQL)"
+fi
+
+# Fail2ban
+if getent group fail2ban > /dev/null 2>&1; then
+    usermod -a -G fail2ban alloy 2>/dev/null || true
+    log_info "  ✓ Groupe fail2ban ajouté"
+fi
+
+# Utilisateur cible (pour logs LGSM, etc.)
+if [[ -n "${TARGET_USER}" ]] && getent group "${TARGET_USER}" > /dev/null 2>&1; then
+    usermod -a -G "${TARGET_USER}" alloy 2>/dev/null || true
+    log_info "  ✓ Groupe ${TARGET_USER} ajouté (logs utilisateur, LGSM)"
+fi
+
+# Configurer les permissions spécifiques pour les répertoires de logs
+log_info "Configuration des permissions de répertoires..."
+
+# Fail2ban logs
+if [[ -d /var/log/fail2ban ]]; then
+    chmod 755 /var/log/fail2ban 2>/dev/null || true
+    find /var/log/fail2ban -type f -name "*.log" -exec chmod 644 {} \; 2>/dev/null || true
+fi
+
+# PostgreSQL logs
+if [[ -d /var/log/postgresql ]]; then
+    chmod 755 /var/log/postgresql 2>/dev/null || true
+fi
+
+# MySQL/MariaDB logs
+if [[ -d /var/log/mysql ]]; then
+    chmod 755 /var/log/mysql 2>/dev/null || true
+fi
+
+# Nginx logs (déjà accessible via www-data normalement)
+if [[ -d /var/log/nginx ]]; then
+    chmod 755 /var/log/nginx 2>/dev/null || true
+fi
+
+# Docker logs (si existant)
+if [[ -d /var/log/docker ]]; then
+    chmod 755 /var/log/docker 2>/dev/null || true
+fi
+
+# Logs utilisateur LGSM (si existant)
+if [[ -n "${TARGET_USER}" ]] && [[ -d "/home/${TARGET_USER}/log" ]]; then
+    chmod 755 "/home/${TARGET_USER}/log" 2>/dev/null || true
+fi
+
+log_info "✓ Permissions configurées pour tous les services"
+
+# 4. Valider la configuration
 log_info "Validation de la configuration..."
 if alloy fmt "${CONFIG_FILE}" > /dev/null 2>&1; then
     log_info "✓ Configuration valide"
@@ -296,7 +504,7 @@ else
     log_warning "La validation de la configuration a échoué, mais nous continuons..."
 fi
 
-# 4. Activer et démarrer le service
+# 5. Activer et démarrer le service
 log_info "Activation du service Grafana Alloy..."
 systemctl daemon-reload
 systemctl enable alloy
@@ -314,7 +522,7 @@ else
     exit 1
 fi
 
-# 5. Créer un script de vérification
+# 6. Créer un script de vérification
 log_info "Création d'un script de vérification..."
 
 cat > /usr/local/bin/check-grafana-alloy << 'EOFCHECK'
@@ -371,6 +579,15 @@ alias alloy-restart='sudo systemctl restart alloy'
 alias alloy-logs='sudo journalctl -u alloy -f'
 alias alloy-check='sudo /usr/local/bin/check-grafana-alloy'
 alias alloy-config='sudo nano /etc/alloy/config.alloy'
+alias alloy-errors='sudo journalctl -u alloy --since "1 hour ago" | grep -i "error\|fail\|permission"'
+
+# Alias pour les outils de qualité de code
+alias check-shell='shellcheck'
+alias check-python='pylint'
+alias format-python='black'
+alias check-yaml='yamllint'
+alias check-docker='hadolint'
+alias check-markdown='markdownlint'
 EOFALIAS
 
 chmod +x "${ALIAS_FILE}"
@@ -381,6 +598,8 @@ log_section "Installation Terminée !"
 echo ""
 echo -e "${GREEN}✓ Grafana Alloy installé et configuré${NC}"
 echo -e "${GREEN}✓ Service démarré et actif${NC}"
+echo -e "${GREEN}✓ Permissions configurées (tous services)${NC}"
+echo -e "${GREEN}✓ Outils de qualité de code installés${NC}"
 echo -e "${GREEN}✓ Connexion à Grafana Cloud établie${NC}"
 echo ""
 echo -e "${CYAN}Informations importantes:${NC}"
@@ -393,6 +612,36 @@ echo "  alloy-logs        # Voir les logs en temps réel"
 echo "  alloy-check       # Vérifier la santé d'Alloy"
 echo "  alloy-restart     # Redémarrer le service"
 echo "  alloy-config      # Éditer la configuration"
+echo "  alloy-errors      # Afficher les erreurs récentes"
+echo ""
+echo -e "${YELLOW}Outils de qualité de code:${NC}"
+echo "  check-shell <fichier.sh>       # Vérifier un script Bash"
+echo "  check-python <fichier.py>      # Analyser du code Python"
+echo "  format-python <fichier.py>     # Formater du code Python"
+echo "  check-yaml <fichier.yml>       # Vérifier un fichier YAML"
+echo "  check-docker <Dockerfile>      # Analyser un Dockerfile"
+echo "  check-markdown <fichier.md>    # Vérifier un fichier Markdown"
+echo ""
+echo -e "${CYAN}Logs collectés:${NC}"
+echo "  ✓ Logs système (syslog, kern, auth, daemon)"
+echo "  ✓ Logs web (Nginx access/error, PHP)"
+echo "  ✓ Logs bases de données (PostgreSQL, MySQL/MariaDB)"
+echo "  ✓ Logs Docker (containers)"
+echo "  ✓ Logs sécurité (Fail2ban, UFW)"
+echo "  ✓ Logs utilisateur (LGSM, serveurs de jeu)"
+echo "  ✓ Journal systemd (tous les services)"
+echo ""
+echo -e "${CYAN}Groupes configurés pour l'utilisateur alloy:${NC}"
+echo "  - adm (logs système)"
+echo "  - systemd-journal (journal systemd)"
+echo "  - www-data (Nginx, PHP-FPM)"
+echo "  - docker (logs Docker)"
+echo "  - mysql (MariaDB)"
+echo "  - postgres (PostgreSQL)"
+echo "  - fail2ban"
+if [[ -n "${TARGET_USER}" ]]; then
+    echo "  - ${TARGET_USER} (logs LGSM)"
+fi
 echo ""
 echo -e "${YELLOW}Vérification dans Grafana Cloud:${NC}"
 echo "  1. Connectez-vous à https://grafana.com/"
@@ -400,6 +649,7 @@ echo "  2. Allez dans 'Explore' > 'Prometheus'"
 echo "  3. Recherchez les métriques avec instance=\"${HOSTNAME}\""
 echo "  4. Allez dans 'Explore' > 'Loki'"
 echo "  5. Recherchez les logs avec instance=\"${HOSTNAME}\""
+echo "  6. Filtrez par job (system, nginx, mysql, docker, fail2ban, lgsm, etc.)"
 echo ""
 echo -e "${GREEN}Dashboards disponibles dans Grafana Cloud:${NC}"
 echo "  - Linux node / Overview"
