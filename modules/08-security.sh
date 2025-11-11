@@ -102,8 +102,16 @@ ufw status verbose
 # 4. Installation de Netdata
 log_info "Installation de Netdata (monitoring)..."
 
-# Méthode d'installation recommandée
-bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive --stable-channel
+# Méthode d'installation recommandée (URL mise à jour)
+if curl -fsSL https://get.netdata.cloud/kickstart.sh -o /tmp/netdata-kickstart.sh; then
+    bash /tmp/netdata-kickstart.sh --non-interactive --stable-channel --dont-wait
+    rm -f /tmp/netdata-kickstart.sh
+else
+    log_error "Échec du téléchargement du script Netdata"
+    # Installer depuis les dépôts Ubuntu en fallback
+    log_info "Installation de Netdata depuis les dépôts Ubuntu..."
+    DEBIAN_FRONTEND=noninteractive apt install -y netdata
+fi
 
 # Vérifier si l'installation a réussi
 if systemctl is-active --quiet netdata; then

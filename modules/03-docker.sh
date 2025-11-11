@@ -42,6 +42,8 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
 # 3. Ajouter la clé GPG officielle de Docker
 log_info "Ajout de la clé GPG Docker..."
 install -m 0755 -d /etc/apt/keyrings
+# Supprimer l'ancienne clé si elle existe pour éviter l'erreur "File exists"
+rm -f /etc/apt/keyrings/docker.gpg
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
 
