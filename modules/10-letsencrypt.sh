@@ -164,6 +164,14 @@ EOFRENEW
     chmod +x "${RENEW_TEST_SCRIPT}"
     log_info "✓ Script de test créé : ${RENEW_TEST_SCRIPT}"
     
+    # Activer la configuration Netdata avec HTTPS si elle existe
+    if [ -f /etc/nginx/sites-available/netdata ]; then
+        log_info "Activation de Netdata avec HTTPS..."
+        ln -sf /etc/nginx/sites-available/netdata /etc/nginx/sites-enabled/netdata
+        nginx -t && systemctl reload nginx
+        log_info "✓ Netdata accessible via https://netdata.${SERVER_DOMAIN}"
+    fi
+    
 else
     log_error "Échec de la génération des certificats SSL"
     log_error "Vérifiez que :"

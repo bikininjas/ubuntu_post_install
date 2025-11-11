@@ -45,21 +45,20 @@ WARNINGS=0
 while IFS= read -r script; do
     echo -e "${CYAN}▶${NC} $(basename "$script")"
     
-    # Exécuter shellcheck et capturer la sortie
-    if OUTPUT=$(shellcheck -x "$script" 2>&1); then
+    # Exécuter shellcheck et capturer la sortie (ignorer le code de sortie avec || true)
+    OUTPUT=$(shellcheck -x "$script" 2>&1 || true)
+    
+    if [ -z "$OUTPUT" ]; then
         echo -e "  ${GREEN}✓ Aucun problème${NC}"
     else
-        echo "$OUTPUT" | while IFS= read -r line; do
-            if echo "$line" | grep -q "error:"; then
-                ((ERRORS++)) || true
-                echo -e "  ${RED}$line${NC}"
-            elif echo "$line" | grep -q "warning:"; then
-                ((WARNINGS++)) || true
-                echo -e "  ${YELLOW}$line${NC}"
-            else
-                echo -e "  $line"
-            fi
-        done
+        echo "$OUTPUT"
+        
+        # Compter les erreurs et avertissements (ignorer les "info:")
+        ERROR_COUNT=$(echo "$OUTPUT" | grep -c "(error):" || true)
+        WARNING_COUNT=$(echo "$OUTPUT" | grep -c "(warning):" || true)
+        
+        ERRORS=$((ERRORS + ERROR_COUNT))
+        WARNINGS=$((WARNINGS + WARNING_COUNT))
     fi
     echo ""
 done <<< "$SCRIPTS"

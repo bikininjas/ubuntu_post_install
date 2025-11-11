@@ -2,6 +2,7 @@
 
 
 set -e +o pipefail
+shopt -s inherit_errexit
 
 # Set up paths first
 bin_name="codacy-cli-v2"
@@ -20,6 +21,10 @@ case "$arch" in
 "aarch64"|"arm64")
   arch="arm64"
   ;;
+*)
+  echo "Unsupported architecture: $arch" >&2
+  exit 1
+  ;;
 esac
 
 if [ -z "$CODACY_CLI_V2_TMP_FOLDER" ]; then
@@ -36,6 +41,7 @@ version_file="$CODACY_CLI_V2_TMP_FOLDER/version.yaml"
 
 
 get_version_from_yaml() {
+    set -e
     if [ -f "$version_file" ]; then
         local version
         version=$(grep -o 'version: *"[^"]*"' "$version_file" | cut -d'"' -f2)
@@ -48,6 +54,7 @@ get_version_from_yaml() {
 }
 
 get_latest_version() {
+    set -e
     local response
     if [ -n "$GH_TOKEN" ]; then
         response=$(curl -Lq --header "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest" 2>/dev/null)

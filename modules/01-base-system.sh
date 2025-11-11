@@ -94,14 +94,14 @@ log_info "Configuration des permissions sudo..."
 SUDOERS_FILE="/etc/sudoers.d/$TARGET_USER"
 cat > "$SUDOERS_FILE" << EOF
 # Permissions sudo pour l'utilisateur $TARGET_USER
+# Autres commandes avec mot de passe (doit être AVANT les NOPASSWD)
+$TARGET_USER ALL=(ALL) ALL
+
 # Commandes apt sans mot de passe
-$TARGET_USER ALL=(ALL) NOPASSWD: /usr/bin/apt, /usr/bin/apt-get
+$TARGET_USER ALL=(ALL) NOPASSWD: /usr/bin/apt, /usr/bin/apt-get, /usr/bin/apt-cache
 
 # Commandes docker sans mot de passe
 $TARGET_USER ALL=(ALL) NOPASSWD: /usr/bin/docker
-
-# Autres commandes avec mot de passe
-$TARGET_USER ALL=(ALL) ALL
 EOF
 
 chmod 440 "$SUDOERS_FILE"

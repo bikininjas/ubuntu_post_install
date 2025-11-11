@@ -74,7 +74,7 @@ if [[ "${CHOICE}" == "all" ]]; then
         echo -e "${CYAN}▶ ${module}${NC}"
         echo -e "${YELLOW}─────────────────────────────────────────${NC}"
         
-        LATEST_LOG=$(ls -t "${LOG_DIR}/${module}"-*.log 2>/dev/null | head -1)
+        LATEST_LOG=$(find "${LOG_DIR}" -maxdepth 1 -name "${module}-*.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
         
         if [[ -f "${LATEST_LOG}" ]]; then
             # Chercher les erreurs en excluant les faux positifs courants
@@ -101,7 +101,7 @@ else
         echo -e "${YELLOW}Analyse du module: ${MODULE}${NC}"
         echo ""
         
-        LATEST_LOG=$(ls -t "${LOG_DIR}/${MODULE}"-*.log 2>/dev/null | head -1)
+        LATEST_LOG=$(find "${LOG_DIR}" -maxdepth 1 -name "${MODULE}-*.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
         
         if [[ -f "${LATEST_LOG}" ]]; then
             echo -e "${CYAN}Fichier: ${LATEST_LOG}${NC}"
