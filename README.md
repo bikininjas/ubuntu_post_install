@@ -116,6 +116,7 @@ sudo ./modules/09-update-checker.sh
 | **Gaming** | SteamCMD, LGSM | `07-gaming.sh` |
 | **Update Checker** | Système de vérification automatique des MAJ | `09-update-checker.sh` |
 | **Let's Encrypt** | Certificats SSL automatiques | `10-letsencrypt.sh` |
+| **Grafana Alloy** | Monitoring système via Grafana Cloud | `11-grafana-alloy.sh` |
 
 ### Ordre d'exécution recommandé
 
@@ -132,6 +133,7 @@ Les modules s'exécutent dans cet ordre pour respecter les dépendances :
 9. **07-gaming** → Installe SteamCMD et LGSM
 10. **09-update-checker** → Configure les vérifications automatiques
 11. **10-letsencrypt** → Génère les certificats SSL (dépend de 00 et 05)
+12. **11-grafana-alloy** → Configure le monitoring via Grafana Cloud
 
 ## ⚙️ Configuration
 

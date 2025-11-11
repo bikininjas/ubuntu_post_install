@@ -184,6 +184,7 @@ MODULES=(
     "07-gaming.sh"
     "09-update-checker.sh"
     "10-letsencrypt.sh"
+    "11-grafana-alloy.sh"
 )
 
 # Menu interactif

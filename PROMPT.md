@@ -29,7 +29,8 @@ ubuntu_post_install/
 │   ├── 07-gaming.sh            # SteamCMD et LGSM
 │   ├── 08-security.sh          # UFW et configuration sécurité
 │   ├── 09-update-checker.sh    # Système de vérification des MAJ
-│   └── 10-letsencrypt.sh       # Certificats SSL Let's Encrypt
+│   ├── 10-letsencrypt.sh       # Certificats SSL Let's Encrypt
+│   └── 11-grafana-alloy.sh     # Monitoring Grafana Cloud
 ├── README.md                    # Documentation utilisateur
 ├── QUICKSTART.md                # Guide de démarrage rapide
 ├── PROMPT.md                    # Ce fichier (instructions AI)
@@ -156,6 +157,48 @@ ubuntu_post_install/
   - `ssl-test` : tester le renouvellement
   - `ssl-generate` : générer les certificats
 
+### 11. Grafana Alloy (`11-grafana-alloy.sh`)
+- **Objectif** : Monitoring système complet via Grafana Cloud
+- **Note importante** : Utilise Grafana Alloy (remplace Grafana Agent qui est EOL depuis novembre 2025)
+- **Installation** :
+  - Ajout du repository officiel Grafana (https://apt.grafana.com)
+  - Installation du package `alloy`
+  - Configuration automatique pour Grafana Cloud
+- **Collecte de métriques** :
+  - Node Exporter intégré (métriques système : CPU, RAM, Disk, Network)
+  - Envoi via Prometheus Remote Write vers Grafana Cloud
+  - Labels automatiques : hostname, job name
+- **Collecte de logs** :
+  - Logs systemd journal (via `loki.source.journal`)
+  - Logs fichiers `/var/log/*` (via `loki.source.file`)
+  - Envoi vers Grafana Cloud Loki
+- **Configuration** :
+  - Fichier principal : `/etc/alloy/config.alloy`
+  - Format : Alloy configuration language (River syntax)
+  - Variables depuis `.env` : GRAFANA_CLOUD_PROMETHEUS_URL, GRAFANA_CLOUD_LOKI_URL, API keys
+- **Dashboards disponibles dans Grafana Cloud** :
+  - Linux node / Overview
+  - Linux node / CPU and system
+  - Linux node / Memory
+  - Linux node / Network
+  - Linux node / Filesystem and disks
+  - Linux node / Logs
+  - 24 alertes pré-configurées
+- **Scripts et alias créés** :
+  - `/usr/local/bin/check-grafana-alloy` : script de vérification santé
+  - `alloy-status` : voir le statut du service
+  - `alloy-logs` : logs en temps réel
+  - `alloy-check` : vérifier la santé d'Alloy
+  - `alloy-restart` : redémarrer le service
+  - `alloy-config` : éditer la configuration
+- **Mode interactif** :
+  - Si credentials manquants dans `.env`, demande interactive avec instructions
+  - Validation des credentials avant installation
+- **Vérification post-installation** :
+  - Test de connexion à Grafana Cloud
+  - Instructions pour vérifier dans Grafana Cloud UI
+  - Affichage des dashboards disponibles
+
 ## Comment Continuer ce Projet
 
 ### Si vous devez modifier ou étendre les scripts :
@@ -252,6 +295,7 @@ L'ordre d'exécution des modules est critique :
 9. **07-gaming** : Dépend de 01 (utilisateur)
 10. **09-update-checker** : Dépend de 01 (utilisateur)
 11. **10-letsencrypt** : Dépend de 00 (domaine) et 05 (Nginx)
+12. **11-grafana-alloy** : Indépendant (monitoring système)
 
 ## Variables d'Environnement Importantes
 
