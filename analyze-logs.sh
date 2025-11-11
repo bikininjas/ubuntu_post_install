@@ -33,7 +33,14 @@ echo ""
 
 # Liste tous les fichiers de log
 echo -e "${YELLOW}Fichiers de log disponibles:${NC}"
-ls -lht "${LOG_DIR}/" | grep -v "^total" | head -20
+find "${LOG_DIR}" -maxdepth 1 -name "*.log" -type f -printf "%T@ %p\n" 2>/dev/null | \
+    sort -rn | \
+    head -20 | \
+    while IFS= read -r line; do
+        # Afficher seulement le nom du fichier avec date de modification
+        file_path=$(echo "$line" | cut -d' ' -f2)
+        stat -c "%y %n" "$file_path" 2>/dev/null | sed "s|${LOG_DIR}/||"
+    done
 echo ""
 
 # Demander quel module analyser
