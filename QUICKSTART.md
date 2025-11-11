@@ -92,10 +92,10 @@ apt install -y git && git clone https://github.com/bikininjas/ubuntu_post_instal
 | **Dev Tools** | 5-7 min | Python 3.13, Node.js, Go, Terraform |
 | **Docker** | 2-3 min | Docker CE + Compose |
 | **Databases** | 3-4 min | MySQL/MariaDB + PostgreSQL |
+| **Security** | 1-2 min | UFW firewall (configuration stricte) |
 | **Web Server** | 2-3 min | Nginx + PHP |
 | **Media Tools** | 3-5 min | FFmpeg, codecs |
 | **Gaming** | 2-3 min | SteamCMD, LGSM |
-| **Security** | 1-2 min | UFW firewall (configuration stricte) |
 | **Update Checker** | 1 min | Système de mise à jour auto |
 | **Let's Encrypt** | 2-5 min | Certificats SSL automatiques |
 
@@ -200,8 +200,6 @@ sudo reboot
 ## 📚 Documentation complète
 
 - **README.md** : Documentation complète du projet
-- **UPDATE_SYSTEM.md** : Guide du système de mise à jour automatique
-- **CHANGELOG.md** : Historique des versions
 - **PROMPT.md** : Instructions pour une IA qui prendrait le relais
 
 ## 💡 Conseils

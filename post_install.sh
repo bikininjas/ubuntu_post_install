@@ -71,6 +71,13 @@ load_configuration() {
     export GITREPOS_DIR="/home/${TARGET_USER}/GITRepos"
     export GAME_DIR="/home/${TARGET_USER}/gameservers"
     
+    # Variables Grafana Cloud (optionnelles)
+    export GCLOUD_HOSTED_METRICS_ID=""
+    export GCLOUD_HOSTED_METRICS_URL=""
+    export GCLOUD_HOSTED_LOGS_ID=""
+    export GCLOUD_HOSTED_LOGS_URL=""
+    export GCLOUD_RW_API_KEY=""
+    
     # Charger le fichier .env s'il existe
     if [[ -f "${ENV_FILE}" ]]; then
         log_info "Fichier .env trouvé, chargement des variables..."
@@ -136,6 +143,20 @@ load_configuration() {
     fi
     echo -e "${CYAN}SSH autorisé depuis:${NC} ${ALLOWED_SSH_IP}"
     echo -e "${CYAN}Dossier repos:${NC} ${GITREPOS_DIR}"
+    
+    # Afficher la config Grafana Cloud si configurée
+    if [[ -n "${GCLOUD_HOSTED_METRICS_URL}" ]] && [[ -n "${GCLOUD_HOSTED_LOGS_URL}" ]]; then
+        echo ""
+        echo -e "${GREEN}Grafana Cloud (Monitoring):${NC}"
+        echo -e "${CYAN}  Metrics ID:${NC} ${GCLOUD_HOSTED_METRICS_ID}"
+        echo -e "${CYAN}  Metrics URL:${NC} ${GCLOUD_HOSTED_METRICS_URL}"
+        echo -e "${CYAN}  Logs ID:${NC} ${GCLOUD_HOSTED_LOGS_ID}"
+        echo -e "${CYAN}  Logs URL:${NC} ${GCLOUD_HOSTED_LOGS_URL}"
+        echo -e "${CYAN}  API Key:${NC} ${GCLOUD_RW_API_KEY:0:20}... (configuré)"
+    else
+        echo ""
+        echo -e "${YELLOW}Grafana Cloud:${NC} Non configuré (module 11 demandera les credentials)"
+    fi
     echo ""
     
     # Confirmer avant de continuer
@@ -178,12 +199,13 @@ MODULES=(
     "02-dev-tools.sh"
     "03-docker.sh"
     "04-databases.sh"
+    "08-security.sh"
     "05-web-server.sh"
     "06-media-tools.sh"
     "07-gaming.sh"
-    "08-security.sh"
     "09-update-checker.sh"
     "10-letsencrypt.sh"
+    "11-grafana-alloy.sh"
 )
 
 # Menu interactif
