@@ -189,6 +189,10 @@ fi
 
 # 7. Installation d'outils de sécurité supplémentaires
 log_info "Installation d'outils de sécurité supplémentaires..."
+
+# Préconfigurer unattended-upgrades pour éviter les prompts interactifs
+echo 'unattended-upgrades unattended-upgrades/enable_auto_updates boolean true' | debconf-set-selections
+
 DEBIAN_FRONTEND=noninteractive apt install -y \
     fail2ban \
     unattended-upgrades \
@@ -198,8 +202,8 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
 systemctl enable fail2ban
 systemctl start fail2ban
 
-# Configurer les mises à jour automatiques
-dpkg-reconfigure -plow unattended-upgrades
+# Configurer les mises à jour automatiques (non-interactif)
+DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive unattended-upgrades
 
 log_info "=== Module Sécurité Terminé ==="
 echo ""
