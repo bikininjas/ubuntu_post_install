@@ -71,6 +71,13 @@ load_configuration() {
     export GITREPOS_DIR="/home/${TARGET_USER}/GITRepos"
     export GAME_DIR="/home/${TARGET_USER}/gameservers"
     
+    # Variables Grafana Cloud (optionnelles)
+    export GCLOUD_HOSTED_METRICS_ID=""
+    export GCLOUD_HOSTED_METRICS_URL=""
+    export GCLOUD_HOSTED_LOGS_ID=""
+    export GCLOUD_HOSTED_LOGS_URL=""
+    export GCLOUD_RW_API_KEY=""
+    
     # Charger le fichier .env s'il existe
     if [[ -f "${ENV_FILE}" ]]; then
         log_info "Fichier .env trouvé, chargement des variables..."
