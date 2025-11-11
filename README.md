@@ -105,15 +105,33 @@ sudo ./modules/09-update-checker.sh
 
 | Module | Description | Fichier |
 |--------|-------------|---------|
+| **Domain Config** | Configuration du domaine et hostname du serveur | `00-domain-config.sh` |
 | **Base System** | Configuration utilisateur, zsh, oh-my-zsh | `01-base-system.sh` |
 | **Dev Tools** | Python 3.13, Node.js, Go, Terraform, GitHub CLI | `02-dev-tools.sh` |
 | **Docker** | Docker CE + Docker Compose Plugin | `03-docker.sh` |
 | **Databases** | MySQL/MariaDB + PostgreSQL | `04-databases.sh` |
-| **Web Server** | Nginx + configuration sites | `05-web-server.sh` |
+| **Security** | UFW, Netdata, Fail2ban (configuration stricte) | `08-security.sh` |
+| **Web Server** | Nginx + PHP + configuration sites | `05-web-server.sh` |
 | **Media Tools** | FFmpeg, codecs vidéo/audio | `06-media-tools.sh` |
 | **Gaming** | SteamCMD, LGSM | `07-gaming.sh` |
-| **Security** | UFW, configuration firewall | `08-security.sh` |
-| **Update Checker** | Système de vérification automatique des mises à jour | `09-update-checker.sh` |
+| **Update Checker** | Système de vérification automatique des MAJ | `09-update-checker.sh` |
+| **Let's Encrypt** | Certificats SSL automatiques | `10-letsencrypt.sh` |
+
+### Ordre d'exécution recommandé
+
+Les modules s'exécutent dans cet ordre pour respecter les dépendances :
+
+1. **00-domain-config** → Configure le domaine (requis par Nginx et Let's Encrypt)
+2. **01-base-system** → Crée l'utilisateur et configure le système de base
+3. **02-dev-tools** → Installe les outils de développement
+4. **03-docker** → Installe Docker (dépend de l'utilisateur créé en 01)
+5. **04-databases** → Installe MySQL et PostgreSQL
+6. **08-security** → Configure UFW **AVANT** d'exposer des services
+7. **05-web-server** → Installe Nginx (après UFW pour sécurité)
+8. **06-media-tools** → Installe FFmpeg
+9. **07-gaming** → Installe SteamCMD et LGSM
+10. **09-update-checker** → Configure les vérifications automatiques
+11. **10-letsencrypt** → Génère les certificats SSL (dépend de 00 et 05)
 
 ## ⚙️ Configuration
 
@@ -209,9 +227,9 @@ su - seb
 
 ## 🔄 Système de Mise à Jour Automatique
 
-Le module `09-update-checker.sh` configure un système complet de gestion des mises à jour. **Voir la documentation détaillée : [UPDATE_SYSTEM.md](UPDATE_SYSTEM.md)**
+Le module `09-update-checker.sh` configure un système complet de gestion des mises à jour.
 
-### Résumé des fonctionnalités
+### Fonctionnalités
 
 - ✅ Mise à jour initiale au démarrage du script
 - ✅ Vérification automatique tous les 4 jours (cron + systemd timer)
@@ -334,8 +352,8 @@ ls -l /etc/profile.d/update-reminder.sh
 # Tester manuellement
 bash /etc/profile.d/update-reminder.sh
 
-# Voir la documentation détaillée
-cat UPDATE_SYSTEM.md
+# Voir les logs
+update-log
 ```
 
 ### Problèmes de compilation FFmpeg
@@ -355,8 +373,31 @@ sudo bash -x ./post_install.sh 2>&1 | tee install.log
 
 ## 📚 Documentation Supplémentaire
 
-- [UPDATE_SYSTEM.md](UPDATE_SYSTEM.md) - Documentation complète du système de mise à jour automatique
 - [PROMPT.md](PROMPT.md) - Instructions pour une autre IA qui prendrait le relais
+- [QUICKSTART.md](QUICKSTART.md) - Guide de démarrage rapide
+- [.shellcheck-local.md](.shellcheck-local.md) - Guide pour la vérification ShellCheck locale
+
+## 🧪 Tests et Validation
+
+### Vérification locale avec ShellCheck
+
+Avant de push, vérifiez que tous les scripts passent ShellCheck :
+
+```bash
+# Vérifier tous les scripts
+./check-shellcheck.sh
+
+# Ou manuellement
+shellcheck post_install.sh modules/*.sh
+```
+
+### CI/CD Automatique
+
+Les GitHub Actions vérifient automatiquement :
+- Syntaxe Bash de tous les scripts
+- Validation ShellCheck
+- Permissions des fichiers
+- Structure du projet
 
 ## 🤝 Contribution
 

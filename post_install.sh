@@ -178,10 +178,10 @@ MODULES=(
     "02-dev-tools.sh"
     "03-docker.sh"
     "04-databases.sh"
+    "08-security.sh"
     "05-web-server.sh"
     "06-media-tools.sh"
     "07-gaming.sh"
-    "08-security.sh"
     "09-update-checker.sh"
     "10-letsencrypt.sh"
 )
