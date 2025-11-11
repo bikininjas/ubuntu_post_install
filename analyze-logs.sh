@@ -70,8 +70,10 @@ if [[ "${CHOICE}" == "all" ]]; then
         LATEST_LOG=$(ls -t "${LOG_DIR}/${module}"-*.log 2>/dev/null | head -1)
         
         if [[ -f "${LATEST_LOG}" ]]; then
-            # Chercher les erreurs
-            ERRORS=$(grep -iE "(error|erreur|failed|échec|cannot|unable|exception)" "${LATEST_LOG}" | head -10)
+            # Chercher les erreurs en excluant les faux positifs courants
+            ERRORS=$(grep -iE "(error|erreur|failed|échec|cannot|unable|exception)" "${LATEST_LOG}" | \
+                grep -viE "(libgpg-error|unable to delete old directory|Unable to find image|SyntaxWarning|dpkg: warning|Python modules in the official Ubuntu)" | \
+                head -10)
             
             if [[ -n "${ERRORS}" ]]; then
                 echo -e "${RED}Erreurs détectées:${NC}"

@@ -18,13 +18,33 @@ git clone https://github.com/bikininjas/ubuntu_post_install.git
 cd ubuntu_post_install
 ```
 
-### 3️⃣ Rendre les scripts exécutables
+### 3️⃣ (Optionnel) Configurer le fichier .env
+
+Pour une installation automatisée sans prompts interactifs :
+
+```bash
+# Copier le fichier d'exemple
+cp .env.example .env
+
+# Éditer avec vos valeurs
+nano .env
+```
+
+Configurez ces variables :
+- `TARGET_USER` : Nom de l'utilisateur à créer
+- `TARGET_USER_PASSWORD` : Mot de passe (laissez vide pour génération auto)
+- `SERVER_DOMAIN` : Votre nom de domaine
+- `LETSENCRYPT_EMAIL` : Email pour Let's Encrypt
+- `ALLOWED_SSH_IP` : Votre IP autorisée pour SSH
+- `DNS_CONFIGURED` : "yes" si le DNS est déjà configuré
+
+### 4️⃣ Rendre les scripts exécutables
 
 ```bash
 chmod +x post_install.sh modules/*.sh
 ```
 
-### 4️⃣ Lancer l'installation
+### 5️⃣ Lancer l'installation
 
 ```bash
 sudo ./post_install.sh
@@ -32,19 +52,25 @@ sudo ./post_install.sh
 
 ## 📋 Ce qui va se passer
 
+### Sans fichier .env :
 1. **Configuration du domaine** : Vous devrez entrer un nom de domaine pour le serveur (utilisé pour Nginx, Let's Encrypt, SSH)
 2. **Menu de sélection** : Choisissez entre installation complète ou personnalisée
 3. **Affichage des modules** : Vous verrez la liste des modules qui seront installés
 4. **Countdown** : 3 secondes avant le démarrage
-5. **Mot de passe** : Vous devrez créer un mot de passe pour l'utilisateur "seb"
+5. **Mot de passe** : Vous devrez créer un mot de passe pour l'utilisateur configuré
 6. **Installation automatique** : Tout le reste se fait automatiquement !
+
+### Avec fichier .env :
+1. **Chargement automatique** : Toutes les valeurs sont lues depuis `.env`
+2. **Menu de sélection** : Choisissez entre installation complète ou personnalisée
+3. **Installation automatique** : Aucune autre interaction requise !
 
 ## 💻 Installation complète en une ligne
 
 Si vous préférez tout en une seule commande (sur un serveur neuf) :
 
 ```bash
-sudo apt update && sudo apt install -y git && git clone https://github.com/bikininjas/ubuntu_post_install.git && cd ubuntu_post_install && chmod +x post_install.sh modules/*.sh && sudo ./post_install.sh
+apt install -y git && git clone https://github.com/bikininjas/ubuntu_post_install.git && cd ubuntu_post_install && chmod +x post_install.sh modules/*.sh && ./post_install.sh
 ```
 
 ⚠️ **Important** : Vous devrez entrer :
