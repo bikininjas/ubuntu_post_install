@@ -306,8 +306,11 @@ for module in "${SELECTED_MODULES[@]}"; do
         log_error "✗ Échec du module ${module_name} (code de sortie: ${EXIT_CODE})"
         FAILED_MODULES+=("${module_name}")
         
-        # Capturer les dernières lignes d'erreur
-        ERROR_CONTEXT=$(tail -30 "${MODULE_LOG}" | grep -iE "(error|erreur|failed|échec|exception|cannot|unable|no such)" || tail -20 "${MODULE_LOG}")
+        # Capturer les dernières lignes d'erreur en excluant les faux positifs
+        ERROR_CONTEXT=$(tail -30 "${MODULE_LOG}" | \
+            grep -iE "(error|erreur|failed|échec|exception|cannot|unable|no such)" | \
+            grep -viE "(libgpg-error|unable to delete old directory|Unable to find image|SyntaxWarning|dpkg: warning|Python modules in the official Ubuntu)" || \
+            tail -20 "${MODULE_LOG}")
         MODULE_ERRORS["${module_name}"]="${ERROR_CONTEXT}"
         
         echo ""
