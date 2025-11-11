@@ -108,51 +108,116 @@ DEBIAN_FRONTEND=noninteractive apt install -y alloy
 log_info "✓ Grafana Alloy installé"
 alloy --version
 
-# 1.5. Installation des outils de monitoring de la qualité de code
-log_section "Installation des outils de qualité de code"
+log_info "✓ Grafana Alloy installé"
+alloy --version
 
-log_info "Installation de ShellCheck (vérification scripts Bash)..."
-DEBIAN_FRONTEND=noninteractive apt install -y shellcheck
+# 1.5. Installation de GeoIP2 pour géolocalisation des attaques
+log_section "Installation de GeoIP2 (géolocalisation IP)"
 
-log_info "Installation de Python et outils linting Python..."
-DEBIAN_FRONTEND=noninteractive apt install -y \
-    python3-pip \
-    pylint \
-    python3-autopep8 \
-    python3-flake8
+log_info "Installation de geoipupdate et bases de données MaxMind..."
+DEBIAN_FRONTEND=noninteractive apt install -y geoipupdate libmaxminddb0 libmaxminddb-dev mmdb-bin
 
-# Black (formatage Python) via pip pour avoir la dernière version
-log_info "Installation de Black (formatage Python)..."
-pip3 install --break-system-packages black 2>/dev/null || pip3 install black
+# Créer le répertoire pour les bases de données
+mkdir -p /usr/share/GeoIP
 
-log_info "Installation d'outils supplémentaires..."
-# yamllint pour fichiers YAML (Docker Compose, Kubernetes, etc.)
-DEBIAN_FRONTEND=noninteractive apt install -y yamllint
+# Télécharger GeoLite2 (version gratuite)
+log_info "Téléchargement des bases de données GeoLite2..."
+wget -q -O /tmp/GeoLite2-City.tar.gz "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-City.mmdb.tar.gz"
+wget -q -O /tmp/GeoLite2-Country.tar.gz "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb.tar.gz"
 
-# hadolint pour Dockerfiles (via binary)
-log_info "Installation de Hadolint (linting Dockerfiles)..."
-wget -q -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
-chmod +x /usr/local/bin/hadolint
+tar -xzf /tmp/GeoLite2-City.tar.gz -C /usr/share/GeoIP/ 2>/dev/null || log_warning "GeoLite2-City non extrait"
+tar -xzf /tmp/GeoLite2-Country.tar.gz -C /usr/share/GeoIP/ 2>/dev/null || log_warning "GeoLite2-Country non extrait"
 
-# markdownlint-cli pour fichiers Markdown (via npm si Node.js installé)
-if command -v npm &> /dev/null; then
-    log_info "Installation de markdownlint (linting Markdown)..."
-    npm install -g markdownlint-cli 2>/dev/null || log_warning "markdownlint non installé (npm requis)"
+# Nettoyer
+rm -f /tmp/GeoLite2-*.tar.gz
+
+log_info "✓ GeoIP2 installé"
+
+# Créer un script d'analyse des attaques avec géolocalisation
+log_info "Création du script d'analyse géographique des attaques..."
+
+cat > /usr/local/bin/geoip-attacks << 'EOFGEO'
+#!/bin/bash
+
+# Script d'analyse géographique des attaques
+# Analyse les logs Fail2ban et UFW avec géolocalisation
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+GEOIP_DB="/usr/share/GeoIP/GeoLite2-City.mmdb"
+
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${CYAN}  Analyse géographique des attaques${NC}"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+# Fonction pour obtenir la géolocalisation d'une IP
+geolocate_ip() {
+    local ip=$1
+    if [[ -f "$GEOIP_DB" ]] && command -v mmdblookup &> /dev/null; then
+        local country=$(mmdblookup --file "$GEOIP_DB" --ip "$ip" country names en 2>/dev/null | grep -o '"[^"]*"' | tr -d '"' | tail -1)
+        local city=$(mmdblookup --file "$GEOIP_DB" --ip "$ip" city names en 2>/dev/null | grep -o '"[^"]*"' | tr -d '"' | tail -1)
+        if [[ -n "$country" ]]; then
+            echo "${city:-Unknown}, ${country}"
+        else
+            echo "Unknown"
+        fi
+    else
+        echo "GeoIP unavailable"
+    fi
+}
+
+# Extraire les IPs bannies de Fail2ban
+echo -e "${YELLOW}Top 20 IPs bannies par Fail2ban (dernières 24h):${NC}"
+if [[ -f /var/log/fail2ban.log ]]; then
+    grep "Ban" /var/log/fail2ban.log | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | \
+    sort | uniq -c | sort -rn | head -20 | while read count ip; do
+        location=$(geolocate_ip "$ip")
+        printf "  ${RED}%-4s${NC} ${CYAN}%-15s${NC} %s\n" "$count" "$ip" "$location"
+    done
+else
+    echo "  Aucun log Fail2ban trouvé"
 fi
 
-log_info "✓ Outils de qualité de code installés"
 echo ""
-log_info "Versions installées:"
-echo "  - ShellCheck: $(shellcheck --version | grep version | awk '{print $2}')"
-echo "  - Black: $(black --version | head -1)"
-echo "  - Pylint: $(pylint --version | head -1)"
-echo "  - Flake8: $(flake8 --version)"
-echo "  - yamllint: $(yamllint --version)"
-echo "  - Hadolint: $(hadolint --version)"
-if command -v markdownlint &> /dev/null; then
-    echo "  - markdownlint: $(markdownlint --version)"
+echo -e "${YELLOW}Top 20 pays d'origine des attaques:${NC}"
+if [[ -f /var/log/fail2ban.log ]]; then
+    grep "Ban" /var/log/fail2ban.log | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | \
+    sort -u | while read ip; do
+        geolocate_ip "$ip" | cut -d',' -f2 | xargs
+    done | sort | uniq -c | sort -rn | head -20 | while read count country; do
+        printf "  ${RED}%-4s${NC} %s\n" "$count" "$country"
+    done
+else
+    echo "  Aucune donnée disponible"
 fi
+
 echo ""
+echo -e "${YELLOW}Dernières tentatives d'intrusion (dernière heure):${NC}"
+if [[ -f /var/log/auth.log ]]; then
+    grep "Failed password" /var/log/auth.log | tail -10 | while read line; do
+        ip=$(echo "$line" | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | head -1)
+        if [[ -n "$ip" ]]; then
+            location=$(geolocate_ip "$ip")
+            echo "  ${RED}$ip${NC} - $location"
+        fi
+    done
+else
+    echo "  Aucun log auth.log trouvé"
+fi
+
+echo ""
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+EOFGEO
+
+chmod +x /usr/local/bin/geoip-attacks
+
+log_info "✓ Script geoip-attacks créé"
+log_info "✓ GeoIP2 configuré pour l'analyse des attaques"
 
 # 2. Configuration de Grafana Alloy
 log_info "Configuration de Grafana Alloy pour Grafana Cloud..."
@@ -496,6 +561,77 @@ fi
 
 log_info "✓ Permissions configurées pour tous les services"
 
+# 3.5. Créer un cron job pour exporter les métriques géographiques
+log_info "Configuration de l'export des métriques géographiques..."
+
+cat > /usr/local/bin/export-geoip-metrics << 'EOFEXPORT'
+#!/bin/bash
+
+# Script d'export des métriques géographiques pour Prometheus
+# Analyse les logs Fail2ban et génère des métriques
+
+METRICS_FILE="/var/lib/alloy/geoip_metrics.prom"
+GEOIP_DB="/usr/share/GeoIP/GeoLite2-City.mmdb"
+
+# Fonction pour géolocaliser une IP
+geolocate_ip() {
+    local ip=$1
+    if [[ -f "$GEOIP_DB" ]] && command -v mmdblookup &> /dev/null; then
+        local country=$(mmdblookup --file "$GEOIP_DB" --ip "$ip" country iso_code 2>/dev/null | grep -o '"[^"]*"' | tr -d '"' | tail -1)
+        echo "${country:-Unknown}"
+    else
+        echo "Unknown"
+    fi
+}
+
+# Créer le répertoire si nécessaire
+mkdir -p /var/lib/alloy
+chown alloy:alloy /var/lib/alloy
+
+# Initialiser le fichier de métriques
+cat > "$METRICS_FILE" << 'EOF'
+# HELP fail2ban_bans_total Total number of bans by Fail2ban
+# TYPE fail2ban_bans_total counter
+# HELP fail2ban_bans_by_country Number of bans by country
+# TYPE fail2ban_bans_by_country gauge
+EOF
+
+# Compter les bans par pays (dernières 24h)
+if [[ -f /var/log/fail2ban.log ]]; then
+    grep "Ban" /var/log/fail2ban.log | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | \
+    sort -u | while read ip; do
+        country=$(geolocate_ip "$ip")
+        echo "fail2ban_bans_by_country{country=\"$country\"} 1"
+    done | awk '{sum[$0]++} END {for (i in sum) print i, sum[i]}' | \
+    while read metric count; do
+        echo "$metric $count" >> "$METRICS_FILE"
+    done
+fi
+
+# Total des bans
+total_bans=$(grep -c "Ban" /var/log/fail2ban.log 2>/dev/null || echo 0)
+echo "fail2ban_bans_total $total_bans" >> "$METRICS_FILE"
+
+# Permissions
+chmod 644 "$METRICS_FILE"
+chown alloy:alloy "$METRICS_FILE"
+EOFEXPORT
+
+chmod +x /usr/local/bin/export-geoip-metrics
+
+# Créer un cron job pour exécuter toutes les 5 minutes
+cat > /etc/cron.d/geoip-metrics << 'EOFCRON'
+# Export des métriques GeoIP toutes les 5 minutes
+*/5 * * * * root /usr/local/bin/export-geoip-metrics > /dev/null 2>&1
+EOFCRON
+
+chmod 644 /etc/cron.d/geoip-metrics
+
+# Exécuter une première fois
+/usr/local/bin/export-geoip-metrics 2>/dev/null || log_warning "Première exportation des métriques GeoIP échouée"
+
+log_info "✓ Export des métriques géographiques configuré"
+
 # 4. Valider la configuration
 log_info "Validation de la configuration..."
 if alloy fmt "${CONFIG_FILE}" > /dev/null 2>&1; then
@@ -581,13 +717,9 @@ alias alloy-check='sudo /usr/local/bin/check-grafana-alloy'
 alias alloy-config='sudo nano /etc/alloy/config.alloy'
 alias alloy-errors='sudo journalctl -u alloy --since "1 hour ago" | grep -i "error\|fail\|permission"'
 
-# Alias pour les outils de qualité de code
-alias check-shell='shellcheck'
-alias check-python='pylint'
-alias format-python='black'
-alias check-yaml='yamllint'
-alias check-docker='hadolint'
-alias check-markdown='markdownlint'
+# Alias pour l'analyse géographique des attaques
+alias geoip-attacks='/usr/local/bin/geoip-attacks'
+alias security-map='geoip-attacks'
 EOFALIAS
 
 chmod +x "${ALIAS_FILE}"
@@ -599,12 +731,13 @@ echo ""
 echo -e "${GREEN}✓ Grafana Alloy installé et configuré${NC}"
 echo -e "${GREEN}✓ Service démarré et actif${NC}"
 echo -e "${GREEN}✓ Permissions configurées (tous services)${NC}"
-echo -e "${GREEN}✓ Outils de qualité de code installés${NC}"
+echo -e "${GREEN}✓ GeoIP2 installé (géolocalisation des attaques)${NC}"
 echo -e "${GREEN}✓ Connexion à Grafana Cloud établie${NC}"
 echo ""
 echo -e "${CYAN}Informations importantes:${NC}"
 echo -e "  Serveur: ${HOSTNAME}"
 echo -e "  Config: ${CONFIG_FILE}"
+echo -e "  GeoIP DB: /usr/share/GeoIP/GeoLite2-City.mmdb"
 echo ""
 echo -e "${YELLOW}Commandes utiles:${NC}"
 echo "  alloy-status      # Voir le statut du service"
@@ -614,13 +747,9 @@ echo "  alloy-restart     # Redémarrer le service"
 echo "  alloy-config      # Éditer la configuration"
 echo "  alloy-errors      # Afficher les erreurs récentes"
 echo ""
-echo -e "${YELLOW}Outils de qualité de code:${NC}"
-echo "  check-shell <fichier.sh>       # Vérifier un script Bash"
-echo "  check-python <fichier.py>      # Analyser du code Python"
-echo "  format-python <fichier.py>     # Formater du code Python"
-echo "  check-yaml <fichier.yml>       # Vérifier un fichier YAML"
-echo "  check-docker <Dockerfile>      # Analyser un Dockerfile"
-echo "  check-markdown <fichier.md>    # Vérifier un fichier Markdown"
+echo -e "${YELLOW}Analyse de sécurité:${NC}"
+echo "  geoip-attacks     # Analyser géographiquement les attaques"
+echo "  security-map      # Alias pour geoip-attacks"
 echo ""
 echo -e "${CYAN}Logs collectés:${NC}"
 echo "  ✓ Logs système (syslog, kern, auth, daemon)"

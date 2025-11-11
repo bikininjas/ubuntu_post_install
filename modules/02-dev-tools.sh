@@ -113,18 +113,86 @@ DEBIAN_FRONTEND=noninteractive apt install -y terraform
 log_info "✓ Terraform installé"
 terraform --version
 
-# 7. Outils utiles supplémentaires
-log_info "Installation d'outils supplémentaires..."
+# 7. Outils système et monitoring
+log_info "Installation d'outils système avancés..."
 DEBIAN_FRONTEND=noninteractive apt install -y \
-    jq \
     htop \
+    btop \
+    ncdu \
+    iotop \
+    nmon \
+    glances \
+    duf \
     tree \
     vim \
     nano \
     tmux \
     unzip \
     zip \
-    ncdu
+    silversearcher-ag \
+    ripgrep \
+    fd-find \
+    bat \
+    jq \
+    httpie \
+    tldr \
+    neofetch
+
+log_info "✓ Outils système installés"
+
+# 8. Outils de qualité de code
+log_info "Installation des outils de linting et formatage..."
+
+# ShellCheck pour Bash
+DEBIAN_FRONTEND=noninteractive apt install -y shellcheck
+
+# Python linting
+DEBIAN_FRONTEND=noninteractive apt install -y \
+    python3-pip \
+    pylint \
+    python3-autopep8 \
+    python3-flake8
+
+# Black (formatage Python) via pip
+pip3 install --break-system-packages black 2>/dev/null || pip3 install black
+
+# yamllint pour YAML
+DEBIAN_FRONTEND=noninteractive apt install -y yamllint
+
+# hadolint pour Dockerfiles
+wget -q -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+chmod +x /usr/local/bin/hadolint
+
+# markdownlint-cli pour Markdown (via npm)
+if command -v npm &> /dev/null; then
+    npm install -g markdownlint-cli 2>/dev/null || log_warning "markdownlint non installé"
+fi
+
+log_info "✓ Outils de qualité de code installés"
+
+# 9. Créer des alias utiles
+log_info "Création des alias pour les outils..."
+
+ALIAS_FILE="/etc/profile.d/dev-tools-aliases.sh"
+cat > "${ALIAS_FILE}" << 'EOFALIAS'
+# Alias pour outils de développement
+
+# Outils de qualité de code
+alias check-shell='shellcheck'
+alias check-python='pylint'
+alias format-python='black'
+alias check-yaml='yamllint'
+alias check-docker='hadolint'
+alias check-markdown='markdownlint'
+
+# Outils système
+alias disk-usage='ncdu'
+alias sys-monitor='btop'
+alias network='glances'
+EOFALIAS
+
+chmod +x "${ALIAS_FILE}"
+log_info "✓ Alias créés"
 
 log_info "=== Module Outils de Développement Terminé ==="
 echo ""
@@ -135,6 +203,15 @@ echo -e "${GREEN}npm:${NC} $(npm --version)"
 echo -e "${GREEN}Bun:${NC} Installé"
 echo -e "${GREEN}Go:${NC} $(/usr/local/go/bin/go version)"
 echo -e "${GREEN}Terraform:${NC} $(terraform version | head -n1)"
+echo ""
+echo -e "${YELLOW}Outils système:${NC}"
+echo "  - htop, btop, ncdu, glances, duf"
+echo "  - ripgrep (rg), fd-find, bat, httpie"
+echo "  - neofetch, tldr"
+echo ""
+echo -e "${YELLOW}Outils qualité de code:${NC}"
+echo "  - ShellCheck, Black, Pylint, Flake8"
+echo "  - yamllint, hadolint, markdownlint"
 echo ""
 
 exit 0
