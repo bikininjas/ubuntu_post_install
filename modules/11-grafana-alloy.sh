@@ -387,80 +387,150 @@ log_info "✓ Configuration créée : ${CONFIG_FILE}"
 # 3. Configurer les permissions pour les logs
 log_info "Configuration des permissions pour les logs..."
 
-# Groupes système essentiels
-usermod -a -G adm alloy 2>/dev/null || log_warning "Groupe adm non disponible"
-usermod -a -G systemd-journal alloy 2>/dev/null || log_warning "Groupe systemd-journal non disponible"
+# Fonction pour ajouter un groupe de manière sûre
+add_group_safely() {
+    local group=$1
+    local description=$2
+    
+    if getent group "${group}" > /dev/null 2>&1; then
+        if usermod -a -G "${group}" alloy 2>/dev/null; then
+            log_info "  ✓ Groupe ${group} ajouté${description:+ (${description})}"
+            return 0
+        else
+            log_warning "  ⚠ Impossible d'ajouter le groupe ${group}"
+            return 1
+        fi
+    fi
+    return 1
+}
 
-# Services web
-if getent group www-data > /dev/null 2>&1; then
-    usermod -a -G www-data alloy 2>/dev/null || true
-    log_info "  ✓ Groupe www-data ajouté (Nginx, PHP-FPM)"
+# Groupes système essentiels (obligatoires)
+# shellcheck disable=SC2310
+if ! add_group_safely "adm" "logs système"; then
+    log_warning "Groupe adm non disponible"
+fi
+# shellcheck disable=SC2310
+if ! add_group_safely "systemd-journal" "journal systemd"; then
+    log_warning "Groupe systemd-journal non disponible"
 fi
 
-# Docker
-if getent group docker > /dev/null 2>&1; then
-    usermod -a -G docker alloy 2>/dev/null || true
-    log_info "  ✓ Groupe docker ajouté"
-fi
+# Services web (optionnels)
+add_group_safely "www-data" "Nginx, PHP-FPM"
 
-# Bases de données
-if getent group mysql > /dev/null 2>&1; then
-    usermod -a -G mysql alloy 2>/dev/null || true
-    log_info "  ✓ Groupe mysql ajouté (MariaDB)"
-fi
+# Docker (optionnel)
+add_group_safely "docker" "conteneurs Docker"
 
-if getent group postgres > /dev/null 2>&1; then
-    usermod -a -G postgres alloy 2>/dev/null || true
-    log_info "  ✓ Groupe postgres ajouté (PostgreSQL)"
-fi
+# Bases de données (optionnelles - ne seront pas présentes si Docker est utilisé)
+add_group_safely "mysql" "MariaDB/MySQL"
+add_group_safely "postgres" "PostgreSQL"
 
-# Fail2ban
-if getent group fail2ban > /dev/null 2>&1; then
-    usermod -a -G fail2ban alloy 2>/dev/null || true
-    log_info "  ✓ Groupe fail2ban ajouté"
-fi
+# Fail2ban (optionnel)
+add_group_safely "fail2ban" "logs Fail2ban"
 
 # Utilisateur cible (pour logs LGSM, etc.)
-if [[ -n "${TARGET_USER}" ]] && getent group "${TARGET_USER}" > /dev/null 2>&1; then
-    usermod -a -G "${TARGET_USER}" alloy 2>/dev/null || true
-    log_info "  ✓ Groupe ${TARGET_USER} ajouté (logs utilisateur, LGSM)"
+if [[ -n "${TARGET_USER}" ]]; then
+    add_group_safely "${TARGET_USER}" "logs utilisateur, LGSM"
 fi
 
 # Configurer les permissions spécifiques pour les répertoires de logs
-log_info "Configuration des permissions de répertoires..."
+log_info "Configuration des permissions de répertoires et fichiers..."
 
-# Fail2ban logs
-if [[ -d /var/log/fail2ban ]]; then
-    chmod 755 /var/log/fail2ban 2>/dev/null || true
-    find /var/log/fail2ban -type f -name "*.log" -exec chmod 644 {} \; 2>/dev/null || true
+# Fonction pour configurer les permissions d'un répertoire
+configure_log_dir() {
+    local dir=$1
+    local description=$2
+    
+    if [[ -d "${dir}" ]]; then
+        # Rendre le répertoire accessible (lecture + exécution pour parcourir)
+        if chmod 755 "${dir}" 2>/dev/null; then
+            # Rendre tous les fichiers .log lisibles
+            find "${dir}" -type f -name "*.log" -exec chmod 644 {} \; 2>/dev/null || true
+            log_info "  ✓ ${description}: ${dir}"
+            return 0
+        else
+            log_warning "  ⚠ Impossible de modifier ${dir}"
+            return 1
+        fi
+    fi
+    return 1
+}
+
+# Logs système
+configure_log_dir "/var/log" "Logs système principaux"
+
+# Logs spécifiques
+configure_log_dir "/var/log/nginx" "Nginx"
+configure_log_dir "/var/log/apache2" "Apache2"
+configure_log_dir "/var/log/fail2ban" "Fail2ban"
+configure_log_dir "/var/log/postgresql" "PostgreSQL"
+configure_log_dir "/var/log/mysql" "MySQL/MariaDB"
+configure_log_dir "/var/log/docker" "Docker"
+
+# UFW log file (fichier unique, pas un répertoire)
+if [[ -f /var/log/ufw.log ]]; then
+    if chmod 644 /var/log/ufw.log 2>/dev/null; then
+        log_info "  ✓ UFW: /var/log/ufw.log"
+    fi
 fi
 
-# PostgreSQL logs
-if [[ -d /var/log/postgresql ]]; then
-    chmod 755 /var/log/postgresql 2>/dev/null || true
-fi
+# PHP-FPM logs (fichiers individuels)
+for php_log in /var/log/php*.log; do
+    if [[ -f "${php_log}" ]]; then
+        if chmod 644 "${php_log}" 2>/dev/null; then
+            log_info "  ✓ PHP-FPM: ${php_log}"
+        fi
+    fi
+done
 
-# MySQL/MariaDB logs
-if [[ -d /var/log/mysql ]]; then
-    chmod 755 /var/log/mysql 2>/dev/null || true
-fi
-
-# Nginx logs (déjà accessible via www-data normalement)
-if [[ -d /var/log/nginx ]]; then
-    chmod 755 /var/log/nginx 2>/dev/null || true
-fi
-
-# Docker logs (si existant)
-if [[ -d /var/log/docker ]]; then
-    chmod 755 /var/log/docker 2>/dev/null || true
+# Configuration de logrotate pour PHP-FPM (permissions correctes après rotation)
+PHP_LOGROTATE="/etc/logrotate.d/php8.3-fpm"
+if [[ -f "${PHP_LOGROTATE}" ]]; then
+    log_info "Configuration de logrotate pour PHP-FPM..."
+    # Vérifier si la directive create existe déjà
+    if ! grep -q "^[[:space:]]*create" "${PHP_LOGROTATE}" 2>/dev/null; then
+        # Créer une nouvelle configuration avec la directive create
+        cat > "${PHP_LOGROTATE}" << 'EOFLOGROTATE'
+/var/log/php8.3-fpm.log {
+    create 0644 www-data adm
+    rotate 12
+    weekly
+    missingok
+    notifempty
+    compress
+    delaycompress
+    postrotate
+        if [ -x /usr/lib/php/php8.3-fpm-reopenlogs ]; then
+            /usr/lib/php/php8.3-fpm-reopenlogs;
+        fi
+    endscript
+}
+EOFLOGROTATE
+        log_info "  ✓ Logrotate PHP-FPM configuré (permissions 644)"
+    else
+        log_info "  ✓ Logrotate PHP-FPM déjà configuré"
+    fi
 fi
 
 # Logs utilisateur LGSM (si existant)
-if [[ -n "${TARGET_USER}" ]] && [[ -d "/home/${TARGET_USER}/log" ]]; then
-    chmod 755 "/home/${TARGET_USER}/log" 2>/dev/null || true
+if [[ -n "${TARGET_USER}" ]]; then
+    configure_log_dir "/home/${TARGET_USER}/log" "LGSM (${TARGET_USER})"
+    configure_log_dir "/home/${TARGET_USER}/gameservers" "Serveurs de jeu (${TARGET_USER})"
 fi
 
-log_info "✓ Permissions configurées pour tous les services"
+# Docker containers logs (permissions spéciales requises)
+if [[ -d /var/lib/docker/containers ]]; then
+    # S'assurer que le répertoire parent est accessible
+    chmod 755 /var/lib/docker 2>/dev/null || true
+    chmod 755 /var/lib/docker/containers 2>/dev/null || true
+    log_info "  ✓ Docker containers: /var/lib/docker/containers"
+fi
+
+log_info "✓ Permissions configurées pour tous les services disponibles"
+
+# Afficher les groupes de l'utilisateur alloy
+log_info "Groupes de l'utilisateur alloy:"
+ALLOY_GROUPS=$(groups alloy | cut -d: -f2 | xargs)
+log_info "  ${ALLOY_GROUPS}"
 
 # 4. Valider la configuration
 log_info "Validation de la configuration..."
@@ -582,12 +652,25 @@ echo "  ✓ Logs utilisateur (LGSM, serveurs de jeu)"
 echo "  ✓ Journal systemd (tous les services)"
 echo ""
 echo -e "${CYAN}Groupes configurés pour l'utilisateur alloy:${NC}"
-echo "  - adm (logs système)"
-echo "  - systemd-journal (journal systemd)"
-echo "  - www-data (Nginx, PHP-FPM)"
-echo "  - docker (logs Docker)"
-if [[ -n "${TARGET_USER}" ]]; then
-    echo "  - ${TARGET_USER} (logs LGSM)"
+# Afficher les groupes réellement configurés (pas une liste statique)
+CONFIGURED_GROUPS=$(groups alloy 2>/dev/null | cut -d: -f2 | xargs)
+if [[ -n "${CONFIGURED_GROUPS}" ]]; then
+    for group in ${CONFIGURED_GROUPS}; do
+        case "${group}" in
+            alloy) ;; # Ignore le groupe principal
+            adm) echo "  - ${group} (logs système)" ;;
+            systemd-journal) echo "  - ${group} (journal systemd)" ;;
+            www-data) echo "  - ${group} (Nginx, PHP-FPM)" ;;
+            docker) echo "  - ${group} (logs Docker)" ;;
+            mysql) echo "  - ${group} (MariaDB/MySQL)" ;;
+            postgres) echo "  - ${group} (PostgreSQL)" ;;
+            fail2ban) echo "  - ${group} (logs Fail2ban)" ;;
+            "${TARGET_USER}") echo "  - ${group} (logs LGSM)" ;;
+            *) echo "  - ${group}" ;;
+        esac
+    done
+else
+    echo "  - Aucun groupe supplémentaire configuré"
 fi
 echo ""
 echo -e "${YELLOW}Vérification dans Grafana Cloud:${NC}"
