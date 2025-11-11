@@ -73,8 +73,14 @@ echo "  1. Un enregistrement A pointe vers l'IP publique de ce serveur"
 echo "  2. Les enregistrements DNS sont propagés (peut prendre jusqu'à 48h)"
 echo ""
 
-read -p "Votre DNS est-il correctement configuré ? [o/N]: " DNS_READY
-DNS_READY=${DNS_READY:-N}
+# En mode non-interactif ou si confirmé via variable d'environnement, continuer automatiquement
+if [[ "${DNS_CONFIGURED:-}" == "yes" ]] || [[ ! -t 0 ]]; then
+    log_info "Mode automatique : DNS considéré comme configuré"
+    DNS_READY="o"
+else
+    read -p "Votre DNS est-il correctement configuré ? [o/N]: " DNS_READY
+    DNS_READY=${DNS_READY:-N}
+fi
 
 if [[ ! "${DNS_READY}" =~ ^[Oo]$ ]]; then
     log_warning "Configuration DNS non confirmée"

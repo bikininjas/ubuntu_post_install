@@ -45,12 +45,113 @@ fi
 # Détection du répertoire du script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODULES_DIR="${SCRIPT_DIR}/modules"
+ENV_FILE="${SCRIPT_DIR}/.env"
 
 # Vérification de l'existence du dossier modules
 if [[ ! -d "${MODULES_DIR}" ]]; then
     log_error "Le dossier modules/ n'existe pas dans ${SCRIPT_DIR}"
     exit 1
 fi
+
+################################################################################
+# Chargement de la configuration depuis .env ou saisie interactive
+################################################################################
+
+load_configuration() {
+    log_info "Chargement de la configuration..."
+    
+    # Variables par défaut
+    export TARGET_USER="seb"
+    export TARGET_USER_PASSWORD=""
+    export GIT_USER="SebPikPik"
+    export GIT_EMAIL="sebpicot@gmail.com"
+    export SERVER_DOMAIN=""
+    export LETSENCRYPT_EMAIL=""
+    export ALLOWED_SSH_IP=""
+    export GITREPOS_DIR="/home/${TARGET_USER}/GITRepos"
+    export GAME_DIR="/home/${TARGET_USER}/gameservers"
+    
+    # Charger le fichier .env s'il existe
+    if [[ -f "${ENV_FILE}" ]]; then
+        log_info "Fichier .env trouvé, chargement des variables..."
+        # Source le fichier .env en ignorant les commentaires et lignes vides
+        # shellcheck disable=SC1090
+        set -a  # Exporter automatiquement toutes les variables
+        source <(grep -v '^#' "${ENV_FILE}" | grep -v '^$')
+        set +a
+        log_info "✓ Configuration chargée depuis ${ENV_FILE}"
+    else
+        log_warning "Aucun fichier .env trouvé, passage en mode interactif"
+        log_info "💡 Conseil: Créez un fichier .env depuis .env.example pour éviter les questions"
+        echo ""
+    fi
+    
+    # Demander les informations manquantes en mode interactif
+    if [[ -z "${TARGET_USER}" ]]; then
+        read -p "Nom d'utilisateur à créer [seb]: " TARGET_USER
+        TARGET_USER=${TARGET_USER:-seb}
+    fi
+    export TARGET_USER
+    export GITREPOS_DIR="/home/${TARGET_USER}/GITRepos"
+    export GAME_DIR="/home/${TARGET_USER}/gameservers"
+    
+    if [[ -z "${GIT_USER}" ]]; then
+        read -p "Nom d'utilisateur Git [${TARGET_USER}]: " GIT_USER
+        GIT_USER=${GIT_USER:-${TARGET_USER}}
+    fi
+    export GIT_USER
+    
+    if [[ -z "${GIT_EMAIL}" ]]; then
+        read -p "Email Git: " GIT_EMAIL
+    fi
+    export GIT_EMAIL
+    
+    if [[ -z "${SERVER_DOMAIN}" ]]; then
+        read -p "Nom de domaine (ex: example.com) [optionnel]: " SERVER_DOMAIN
+    fi
+    export SERVER_DOMAIN
+    
+    if [[ -n "${SERVER_DOMAIN}" ]] && [[ -z "${LETSENCRYPT_EMAIL}" ]]; then
+        read -p "Email Let's Encrypt [${GIT_EMAIL}]: " LETSENCRYPT_EMAIL
+        LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-${GIT_EMAIL}}
+    fi
+    export LETSENCRYPT_EMAIL
+    
+    if [[ -z "${ALLOWED_SSH_IP}" ]]; then
+        echo ""
+        log_warning "IMPORTANT: Quelle IP doit être autorisée pour SSH?"
+        log_warning "Cette IP sera la SEULE autorisée à se connecter en SSH (port 22)"
+        read -p "IP autorisée pour SSH (xxx.xxx.xxx.xxx): " ALLOWED_SSH_IP
+    fi
+    export ALLOWED_SSH_IP
+    
+    # Afficher un résumé de la configuration
+    echo ""
+    log_section "Configuration chargée"
+    echo -e "${CYAN}Utilisateur:${NC} ${TARGET_USER}"
+    echo -e "${CYAN}Git:${NC} ${GIT_USER} <${GIT_EMAIL}>"
+    if [[ -n "${SERVER_DOMAIN}" ]]; then
+        echo -e "${CYAN}Domaine:${NC} ${SERVER_DOMAIN}"
+        echo -e "${CYAN}Let's Encrypt Email:${NC} ${LETSENCRYPT_EMAIL}"
+    fi
+    echo -e "${CYAN}SSH autorisé depuis:${NC} ${ALLOWED_SSH_IP}"
+    echo -e "${CYAN}Dossier repos:${NC} ${GITREPOS_DIR}"
+    echo ""
+    
+    # Confirmer avant de continuer
+    read -p "Confirmer cette configuration? [O/n]: " CONFIRM
+    CONFIRM=${CONFIRM:-O}
+    if [[ ! "${CONFIRM}" =~ ^[Oo]$ ]]; then
+        log_error "Configuration annulée"
+        exit 1
+    fi
+    
+    log_info "✓ Configuration validée"
+    echo ""
+}
+
+# Charger la configuration dès le début
+load_configuration
 
 # Banner
 clear
@@ -192,9 +293,9 @@ for module in "${SELECTED_MODULES[@]}"; do
     
     log_section "Exécution: ${module_name}"
     
-    # Exécuter le module avec capture des erreurs et verbose
+    # Exécuter le module avec capture des erreurs
     set +e  # Désactiver l'arrêt automatique pour ce module
-    bash -x "${module_path}" 2>&1 | tee "${MODULE_LOG}"
+    bash "${module_path}" 2>&1 | tee "${MODULE_LOG}"
     EXIT_CODE=${PIPESTATUS[0]}
     set -e  # Réactiver l'arrêt automatique
     

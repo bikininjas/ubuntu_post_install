@@ -17,11 +17,12 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 
-# Variables
-TARGET_USER="seb"
-GIT_USER="SebPikPik"
-GIT_EMAIL="sebpicot@gmail.com"
-GITREPOS_DIR="/home/${TARGET_USER}/GITRepos"
+# Utiliser les variables d'environnement exportées par post_install.sh
+# Si non définies, utiliser les valeurs par défaut
+TARGET_USER="${TARGET_USER:-seb}"
+GIT_USER="${GIT_USER:-SebPikPik}"
+GIT_EMAIL="${GIT_EMAIL:-sebpicot@gmail.com}"
+GITREPOS_DIR="${GITREPOS_DIR:-/home/${TARGET_USER}/GITRepos}"
 
 # Vérification root
 if [[ "${EUID}" -ne 0 ]]; then 
@@ -47,8 +48,12 @@ if id "$TARGET_USER" &>/dev/null; then
 else
     log_info "Création de l'utilisateur '$TARGET_USER'..."
     
+    # Utiliser le mot de passe depuis l'environnement si disponible
+    if [[ -n "${TARGET_USER_PASSWORD}" ]]; then
+        PASSWORD="${TARGET_USER_PASSWORD}"
+        log_info "Utilisation du mot de passe depuis la configuration"
     # Vérifier si le script est lancé de manière interactive
-    if [ -t 0 ]; then
+    elif [ -t 0 ]; then
         # Mode interactif : demander le mot de passe
         while true; do
             read -s -p "Entrez le mot de passe pour l'utilisateur $TARGET_USER: " PASSWORD

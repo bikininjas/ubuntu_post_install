@@ -40,19 +40,23 @@ if [[ -f "${DOMAIN_CONFIG_FILE}" ]]; then
     exit 0
 fi
 
-# Demander le nom de domaine
-echo ""
-log_info "Ce domaine sera utilisé pour:"
-echo "  - Configuration Nginx (VirtualHost)"
-echo "  - Certificat SSL Let's Encrypt"
-echo "  - Hostname du serveur"
-echo "  - Configuration SSH"
-echo ""
-log_warning "Assurez-vous que le domaine pointe bien vers ce serveur!"
-echo ""
+# Utiliser les variables d'environnement si disponibles
+if [[ -n "${SERVER_DOMAIN}" ]] && [[ -n "${LETSENCRYPT_EMAIL}" ]]; then
+    log_info "Utilisation du domaine depuis la configuration: ${SERVER_DOMAIN}"
+    log_info "Email Let's Encrypt: ${LETSENCRYPT_EMAIL}"
+else
+    # Mode interactif uniquement si pas de variables d'environnement
+    log_info "Ce domaine sera utilisé pour:"
+    echo "  - Configuration Nginx (VirtualHost)"
+    echo "  - Certificat SSL Let's Encrypt"
+    echo "  - Hostname du serveur"
+    echo "  - Configuration SSH"
+    echo ""
+    log_warning "Assurez-vous que le domaine pointe bien vers ce serveur!"
+    echo ""
 
-while true; do
-    read -p "Entrez votre nom de domaine (ex: example.com): " DOMAIN_INPUT
+    while true; do
+        read -p "Entrez votre nom de domaine (ex: example.com): " DOMAIN_INPUT
     
     # Validation du format de domaine
     if [[ -z "${DOMAIN_INPUT}" ]]; then
@@ -109,6 +113,7 @@ while true; do
         break
     fi
 done
+fi
 
 # Sauvegarder la configuration
 log_info "Sauvegarde de la configuration..."

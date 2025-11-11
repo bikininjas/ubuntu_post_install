@@ -24,9 +24,16 @@ fi
 
 log_info "=== Configuration de la Sécurité ==="
 
-# Configuration stricte
-ALLOWED_SSH_IP="82.65.136.32"  # IP autorisée pour SSH
-TARGET_USER="seb"
+# Utiliser les variables d'environnement exportées par post_install.sh
+ALLOWED_SSH_IP="${ALLOWED_SSH_IP:-}"
+TARGET_USER="${TARGET_USER:-seb}"
+
+# Vérifier que l'IP SSH est configurée
+if [[ -z "${ALLOWED_SSH_IP}" ]]; then
+    log_error "Aucune IP autorisée configurée pour SSH!"
+    log_error "Veuillez définir ALLOWED_SSH_IP dans votre fichier .env"
+    exit 1
+fi
 
 log_info "Configuration de sécurité stricte activée"
 log_info "SSH sera limité à l'IP : ${ALLOWED_SSH_IP}"
