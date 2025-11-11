@@ -71,12 +71,19 @@ log_info "Autorisation HTTP et HTTPS pour le serveur web..."
 ufw allow 80/tcp comment 'HTTP'
 ufw allow 443/tcp comment 'HTTPS'
 
-# Ports Steam pour les serveurs de jeu
+# Ports Steam pour les serveurs de jeu (ouverts à tous)
 log_info "Autorisation des ports Steam/Gaming..."
 ufw allow 27015/tcp comment 'Steam SRCDS'
 ufw allow 27015/udp comment 'Steam SRCDS'
 ufw allow 27005/udp comment 'Steam Client'
 ufw allow 27020/udp comment 'Steam SourceTV'
+
+# Ports services (bases de données, monitoring, dev) UNIQUEMENT depuis votre IP
+log_info "Autorisation des services depuis ${ALLOWED_SSH_IP}..."
+ufw allow from "${ALLOWED_SSH_IP}" to any port 3306 proto tcp comment 'MySQL depuis IP autorisée'
+ufw allow from "${ALLOWED_SSH_IP}" to any port 5432 proto tcp comment 'PostgreSQL depuis IP autorisée'
+ufw allow from "${ALLOWED_SSH_IP}" to any port 19999 proto tcp comment 'Netdata depuis IP autorisée'
+ufw allow from "${ALLOWED_SSH_IP}" to any port 12345 proto tcp comment 'Grafana Alloy depuis IP autorisée'
 ufw allow from "${ALLOWED_SSH_IP}" to any port 3000:9000 proto tcp comment 'Ports dev depuis IP autorisée'
 
 # Bloquer explicitement les ports de développement depuis l'extérieur (sauf IP autorisée)
@@ -130,17 +137,20 @@ fi
 # 5. Configuration de Netdata
 log_info "Configuration de Netdata..."
 
-# Netdata écoute sur localhost:19999 par défaut (sécurisé)
-# Pour y accéder depuis l'extérieur, configurer un reverse proxy Nginx ou ouvrir le port
+# Netdata écoute sur toutes les interfaces (protégé par UFW)
+# Accessible uniquement depuis ALLOWED_SSH_IP grâce aux règles UFW
 
-cat > /etc/netdata/netdata.conf << 'EOF'
+cat > /etc/netdata/netdata.conf << EOF
 [global]
-    # Écouter uniquement sur localhost (sécurité)
-    bind to = 127.0.0.1
+    # Écouter sur toutes les interfaces (sécurisé par UFW)
+    bind to = 0.0.0.0
     
 [web]
-    # Permettre les connexions depuis le reverse proxy
-    allow connections from = localhost 127.0.0.1
+    # Permettre les connexions depuis votre IP
+    allow connections from = localhost 127.0.0.1 ${ALLOWED_SSH_IP}
+    
+    # Permettre les dashboards depuis votre IP
+    allow dashboard from = localhost 127.0.0.1 ${ALLOWED_SSH_IP}
 EOF
 
 # Redémarrer Netdata
@@ -208,7 +218,7 @@ DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive unattended-upg
 log_info "=== Module Sécurité Terminé ==="
 echo ""
 echo -e "${GREEN}UFW:${NC} Activé avec configuration stricte"
-echo -e "${GREEN}Netdata:${NC} Installé (http://localhost:19999)"
+echo -e "${GREEN}Netdata:${NC} Installé et accessible sur port 19999"
 echo -e "${GREEN}Fail2ban:${NC} Activé"
 echo -e "${GREEN}Unattended-upgrades:${NC} Configuré"
 echo ""
@@ -225,20 +235,25 @@ echo "  ✓ HTTP : Ouvert à tous"
 echo "  ✓ HTTPS : Ouvert à tous"
 echo ""
 echo -e "${GREEN}Gaming (ports Steam) :${NC}"
-echo "  ✓ 27015 TCP/UDP : SRCDS"
-echo "  ✓ 27005 UDP : Steam Client"
-echo "  ✓ 27020 UDP : SourceTV"
+echo "  ✓ 27015 TCP/UDP : SRCDS (ouvert à tous)"
+echo "  ✓ 27005 UDP : Steam Client (ouvert à tous)"
+echo "  ✓ 27020 UDP : SourceTV (ouvert à tous)"
 echo ""
-echo -e "${YELLOW}Développement (ports 3000-9000) :${NC}"
-echo "  ✓ Accessible UNIQUEMENT depuis : ${ALLOWED_SSH_IP}"
+echo -e "${YELLOW}Services (UNIQUEMENT depuis ${ALLOWED_SSH_IP}) :${NC}"
+echo "  ✓ Port 3306 : MySQL/MariaDB"
+echo "  ✓ Port 5432 : PostgreSQL"
+echo "  ✓ Port 19999 : Netdata"
+echo "  ✓ Port 12345 : Grafana Alloy"
+echo "  ✓ Ports 3000-9000 : Développement"
 echo ""
 echo -e "${YELLOW}Règles UFW détaillées:${NC}"
 ufw status numbered
 echo ""
-echo -e "${YELLOW}Accéder à Netdata:${NC}"
-echo "  - Localement: http://localhost:19999"
-echo "  - Via tunnel SSH: ssh -L 19999:localhost:19999 ${TARGET_USER}@server"
-echo "  - Via Nginx: activez /etc/nginx/sites-available/netdata"
+echo -e "${YELLOW}Accéder aux services depuis ${ALLOWED_SSH_IP}:${NC}"
+echo "  - Netdata: http://<server-ip>:19999"
+echo "  - MySQL: mysql -h <server-ip> -u root -p"
+echo "  - PostgreSQL: psql -h <server-ip> -U postgres"
+echo "  - Grafana Alloy: http://<server-ip>:12345"
 echo ""
 echo -e "${YELLOW}Commandes UFW utiles:${NC}"
 echo "  - Voir le statut: ufw status verbose"

@@ -135,6 +135,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
     bat \
     jq \
     httpie \
+    net-tools \
     tldr \
     neofetch
 
