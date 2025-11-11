@@ -47,19 +47,31 @@ if id "$TARGET_USER" &>/dev/null; then
 else
     log_info "Création de l'utilisateur '$TARGET_USER'..."
     
-    # Demander le mot de passe
-    while true; do
-        read -s -p "Entrez le mot de passe pour l'utilisateur $TARGET_USER: " PASSWORD
-        echo ""
-        read -s -p "Confirmez le mot de passe: " PASSWORD_CONFIRM
-        echo ""
-        
-        if [ "$PASSWORD" = "$PASSWORD_CONFIRM" ]; then
-            break
-        else
-            log_error "Les mots de passe ne correspondent pas. Réessayez."
-        fi
-    done
+    # Vérifier si le script est lancé de manière interactive
+    if [ -t 0 ]; then
+        # Mode interactif : demander le mot de passe
+        while true; do
+            read -s -p "Entrez le mot de passe pour l'utilisateur $TARGET_USER: " PASSWORD
+            echo ""
+            read -s -p "Confirmez le mot de passe: " PASSWORD_CONFIRM
+            echo ""
+            
+            if [ "$PASSWORD" = "$PASSWORD_CONFIRM" ]; then
+                break
+            else
+                log_error "Les mots de passe ne correspondent pas. Réessayez."
+            fi
+        done
+    else
+        # Mode non-interactif : générer un mot de passe aléatoire
+        log_warning "Mode non-interactif détecté"
+        PASSWORD=$(openssl rand -base64 32)
+        PASSWORD_FILE="/root/.${TARGET_USER}_initial_password.txt"
+        echo "$PASSWORD" > "$PASSWORD_FILE"
+        chmod 600 "$PASSWORD_FILE"
+        log_warning "Mot de passe généré automatiquement et sauvegardé dans $PASSWORD_FILE"
+        log_warning "IMPORTANT: Changez ce mot de passe après la première connexion!"
+    fi
     
     # Créer l'utilisateur avec home directory
     useradd -m -s /bin/bash "$TARGET_USER"
