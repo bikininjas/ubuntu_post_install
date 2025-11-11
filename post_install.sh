@@ -136,6 +136,20 @@ load_configuration() {
     fi
     echo -e "${CYAN}SSH autorisé depuis:${NC} ${ALLOWED_SSH_IP}"
     echo -e "${CYAN}Dossier repos:${NC} ${GITREPOS_DIR}"
+    
+    # Afficher la config Grafana Cloud si configurée
+    if [[ -n "${GCLOUD_HOSTED_METRICS_URL}" ]] && [[ -n "${GCLOUD_HOSTED_LOGS_URL}" ]]; then
+        echo ""
+        echo -e "${GREEN}Grafana Cloud (Monitoring):${NC}"
+        echo -e "${CYAN}  Metrics ID:${NC} ${GCLOUD_HOSTED_METRICS_ID}"
+        echo -e "${CYAN}  Metrics URL:${NC} ${GCLOUD_HOSTED_METRICS_URL}"
+        echo -e "${CYAN}  Logs ID:${NC} ${GCLOUD_HOSTED_LOGS_ID}"
+        echo -e "${CYAN}  Logs URL:${NC} ${GCLOUD_HOSTED_LOGS_URL}"
+        echo -e "${CYAN}  API Key:${NC} ${GCLOUD_RW_API_KEY:0:20}... (configuré)"
+    else
+        echo ""
+        echo -e "${YELLOW}Grafana Cloud:${NC} Non configuré (module 11 demandera les credentials)"
+    fi
     echo ""
     
     # Confirmer avant de continuer
