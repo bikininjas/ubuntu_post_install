@@ -404,6 +404,16 @@ fi
 echo ""
 log_section "Installation Terminée!"
 
+# Analyser les logs
+echo ""
+log_info "Analyse des logs d'installation..."
+echo ""
+if [[ -x "${SCRIPT_DIR}/analyze-logs.sh" ]]; then
+    "${SCRIPT_DIR}/analyze-logs.sh" || log_warning "L'analyse des logs a échoué"
+else
+    log_warning "Script analyze-logs.sh non trouvé ou non exécutable"
+fi
+
 # Messages post-installation
 echo ""
 echo -e "${CYAN}Prochaines étapes:${NC}"
@@ -425,6 +435,31 @@ echo "4. Consultez les logs en cas de problème:"
 echo -e "   ${YELLOW}sudo journalctl -xe${NC}"
 echo ""
 
+# Prompt pour redémarrage
+echo ""
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${YELLOW}⚠️  Redémarrage recommandé${NC}"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo "Un redémarrage est recommandé pour appliquer tous les changements,"
+echo "notamment les groupes utilisateur (Docker) et les configurations système."
+echo ""
+read -p "Voulez-vous redémarrer maintenant? (o/N): " -n 1 -r
+echo ""
+
+if [[ $REPLY =~ ^[OoYy]$ ]]; then
+    log_info "Redémarrage du système dans 5 secondes..."
+    echo ""
+    for i in 5 4 3 2 1; do
+        echo -e "${YELLOW}${i}...${NC}"
+        sleep 1
+    done
+    echo ""
+    log_info "Redémarrage en cours..."
+    reboot
+fi
+
+echo ""
 if [[ ${#FAILED_MODULES[@]} -eq 0 ]]; then
     echo -e "${GREEN}✓ Toutes les installations ont réussi!${NC}"
     exit 0

@@ -50,7 +50,11 @@ ubuntu_post_install/
 ### 1. Système de Base (`01-base-system.sh`)
 - Mise à jour complète du système au démarrage
 - Création de l'utilisateur `seb` avec demande de mot de passe
-- Configuration sudoers : commandes `apt` et `docker` sans mot de passe
+- **Configuration sudoers optimisée** :
+  - Règle générale ALL d'abord (pour compatibilité)
+  - Puis NOPASSWD pour apt, apt-get, apt-cache (sans mot de passe)
+  - Puis NOPASSWD pour docker (sans mot de passe)
+  - **Ordre critique** : règles NOPASSWD APRÈS la règle générale ALL
 - Création du dossier `~/GITRepos`
 - Installation et configuration de zsh
 - Installation de oh-my-zsh
@@ -77,11 +81,13 @@ ubuntu_post_install/
 - Test automatique avec conteneur hello-world
 
 ### 4. Bases de Données (`04-databases.sh`)
-- MariaDB (dernière version stable depuis repositories Ubuntu)
-- PostgreSQL (dernière version depuis repositories Ubuntu)
-- Outils clients : mycli (pour MariaDB) et pgcli (pour PostgreSQL)
-- Services activés et démarrés automatiquement
-- Note : mysql_secure_installation doit être exécuté manuellement
+- **IMPORTANT** : Ce module ne fait PLUS d'installation directe
+- Fournit des instructions et exemples pour utiliser Docker
+- Création des répertoires `/opt/docker/data/{mysql,postgres}`
+- Exemples complets de commandes `docker run` pour MySQL 8.0 et PostgreSQL 16
+- Template Docker Compose avec les deux bases de données
+- Guide de référence pour les commandes Docker utiles
+- **Raison du changement** : Utilisation de Docker pour toutes les bases de données (isolation, portabilité, gestion simplifiée)
 
 ### 5. Serveur Web (`05-web-server.sh`)
 - Nginx (dernière version depuis repositories Ubuntu)
@@ -123,8 +129,20 @@ ubuntu_post_install/
 - Ports web : HTTP (80) et HTTPS (443) ouverts à tous
 - Ports Steam : 27015 (TCP/UDP), 27005 (UDP), 27020 (UDP) ouverts
 - Ports développement (3000-9000) : accessibles UNIQUEMENT depuis IP autorisée
+- **Ports bases de données RETIRÉS** : 3306 (MySQL) et 5432 (PostgreSQL) - utilisation Docker
 - Netdata (monitoring temps réel) installé et configuré
-- Configuration Nginx pour Netdata (optionnelle)
+  - Bind sur 0.0.0.0 avec restriction IP (ALLOWED_SSH_IP)
+  - Accessible sur port 19999 depuis IP autorisée uniquement
+- **Configuration Nginx pour Netdata avec HTTPS** :
+  - Reverse proxy automatique configuré
+  - Configuration dans `/etc/nginx/sites-available/netdata`
+  - Activé automatiquement après génération des certificats Let's Encrypt
+  - Accessible via `https://netdata.VOTRE_DOMAINE`
+- **GeoIP2 pour analyse des attaques** :
+  - Installation de geoipupdate, libmaxminddb0, mmdb-bin
+  - Script `/usr/local/bin/geoip-attacks` pour géolocalisation des IP bannies
+  - Alias `geoip-attacks`, `security-map`, `security-bans`, `security-ufw`
+  - Intégration avec Fail2ban pour analyse géographique des attaques
 - Fail2ban installé et activé
 - Unattended-upgrades configuré pour les mises à jour de sécurité
 - Affichage détaillé des règles de sécurité après installation
@@ -149,6 +167,10 @@ ubuntu_post_install/
 - Redirection HTTP vers HTTPS automatique
 - Renouvellement automatique (systemd timer certbot.timer)
 - Vérification DNS avant génération
+- **Activation automatique de Netdata HTTPS** :
+  - Après génération des certificats, active `/etc/nginx/sites-enabled/netdata`
+  - Reload Nginx automatique
+  - Netdata accessible immédiatement via HTTPS
 - Script de génération ultérieure si DNS non configuré : `/usr/local/bin/generate-ssl`
 - Script de test de renouvellement : `/usr/local/bin/test-ssl-renewal`
 - Alias créés :
@@ -164,18 +186,37 @@ ubuntu_post_install/
   - Ajout du repository officiel Grafana (https://apt.grafana.com)
   - Installation du package `alloy`
   - Configuration automatique pour Grafana Cloud
+  - **Arrêt du service avant modification de config** (évite conflits)
+  - Backup automatique de la config par défaut
 - **Collecte de métriques** :
   - Node Exporter intégré (métriques système : CPU, RAM, Disk, Network)
   - Envoi via Prometheus Remote Write vers Grafana Cloud
   - Labels automatiques : hostname, job name
 - **Collecte de logs** :
   - Logs systemd journal (via `loki.source.journal`)
-  - Logs fichiers `/var/log/*` (via `loki.source.file`)
+  - Logs fichiers multi-sources (system, nginx, php, docker, fail2ban, ufw, lgsm, etc.)
   - Envoi vers Grafana Cloud Loki
+- **Gestion des permissions (CRITIQUE)** :
+  - Fonctions `add_group_safely()` et `configure_log_dir()` pour gestion robuste
+  - Ajout automatique aux groupes : adm, systemd-journal, www-data, docker, fail2ban, etc.
+  - Configuration des permissions de tous les répertoires de logs (755)
+  - Configuration des fichiers .log (644)
+  - **Fix PHP-FPM** : Configuration de logrotate pour créer les logs avec permissions 644
+  - Configuration Docker containers logs (/var/lib/docker/containers)
+  - Groupes dynamiques selon services installés
 - **Configuration** :
   - Fichier principal : `/etc/alloy/config.alloy`
   - Format : Alloy configuration language (River syntax)
-  - Variables depuis `.env` : GRAFANA_CLOUD_PROMETHEUS_URL, GRAFANA_CLOUD_LOKI_URL, API keys
+  - Variables depuis `.env` : GCLOUD_HOSTED_METRICS_URL, GCLOUD_HOSTED_LOGS_URL, API keys
+  - Permissions : 640, owner alloy:alloy
+- **Logs collectés** :
+  - Système : syslog, kern.log, auth.log, daemon.log, user.log
+  - Web : Nginx (access/error), PHP-FPM
+  - Bases de données : PostgreSQL, MySQL/MariaDB (si installés)
+  - Sécurité : Fail2ban, UFW
+  - Docker : logs des conteneurs
+  - Gaming : LGSM, serveurs de jeu
+  - Générique : tous les fichiers /var/log/*.log
 - **Dashboards disponibles dans Grafana Cloud** :
   - Linux node / Overview
   - Linux node / CPU and system
@@ -191,6 +232,7 @@ ubuntu_post_install/
   - `alloy-check` : vérifier la santé d'Alloy
   - `alloy-restart` : redémarrer le service
   - `alloy-config` : éditer la configuration
+  - `alloy-errors` : afficher les erreurs récentes
 - **Mode interactif** :
   - Si credentials manquants dans `.env`, demande interactive avec instructions
   - Validation des credentials avant installation
@@ -198,6 +240,7 @@ ubuntu_post_install/
   - Test de connexion à Grafana Cloud
   - Instructions pour vérifier dans Grafana Cloud UI
   - Affichage des dashboards disponibles
+  - Affichage des groupes réellement configurés (dynamique)
 
 ## Comment Continuer ce Projet
 
@@ -352,16 +395,17 @@ Deux workflows valident automatiquement :
 
 ## Prochaines Étapes Possibles
 
-1. **Module Grafana Agent (branche grafanaAgent)** :
-   - Module `11-grafana-agent.sh` en développement
-   - Installation de Grafana Agent
-   - Connexion automatique à Grafana Cloud
-   - Monitoring complet du serveur
+1. **Monitoring avancé avec Grafana Alloy** :
+   - Module `11-grafana-alloy.sh` déjà implémenté
+   - Collecte métriques et logs vers Grafana Cloud
+   - Permissions automatiquement configurées
+   - Dashboards pré-configurés disponibles
 
 2. **Améliorations futures** :
    - Scripts de backup automatique
    - Rotation des backups
    - Backup vers cloud (S3, etc.)
+   - Templates Docker Compose pour applications courantes
 
 ## Contact et Support
 

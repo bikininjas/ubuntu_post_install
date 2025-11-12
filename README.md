@@ -37,9 +37,9 @@ Scripts automatisés modulaires pour configurer un serveur Ubuntu 24.04 LTS fra�
 ### Infrastructure
 - ✅ Docker CE (dernière version gratuite, mise à jour via apt)
 - ✅ Docker Compose Plugin
-- ✅ MySQL/MariaDB
-- ✅ PostgreSQL
+- ✅ **Bases de données via Docker** (MySQL/PostgreSQL) - exemples fournis
 - ✅ Nginx (avec configuration pour WordPress et Node.js)
+- ✅ **Netdata avec HTTPS** (via reverse proxy Nginx)
 
 ### Média
 - ✅ FFmpeg (avec x264, x265, libvpx)
@@ -50,8 +50,10 @@ Scripts automatisés modulaires pour configurer un serveur Ubuntu 24.04 LTS fra�
 - ✅ LGSM (Linux Game Server Manager)
 
 ### Monitoring & Sécurité
-- ✅ Netdata (monitoring temps réel)
-- ✅ UFW (Firewall configuré)
+- ✅ Netdata (monitoring temps réel avec HTTPS)
+- ✅ UFW (Firewall configuré avec règles strictes)
+- ✅ **GeoIP2** (géolocalisation des attaques avec Fail2ban)
+- ✅ **Grafana Alloy** (métriques et logs vers Grafana Cloud)
 - ✅ Système de mise à jour automatique avec notifications
 
 ## 🔧 Prérequis
@@ -106,34 +108,34 @@ sudo ./modules/09-update-checker.sh
 | Module | Description | Fichier |
 |--------|-------------|---------|
 | **Domain Config** | Configuration du domaine et hostname du serveur | `00-domain-config.sh` |
-| **Base System** | Configuration utilisateur, zsh, oh-my-zsh | `01-base-system.sh` |
+| **Base System** | Configuration utilisateur, zsh, oh-my-zsh, sudoers | `01-base-system.sh` |
 | **Dev Tools** | Python 3.13, Node.js, Go, Terraform, GitHub CLI | `02-dev-tools.sh` |
 | **Docker** | Docker CE + Docker Compose Plugin | `03-docker.sh` |
-| **Databases** | MySQL/MariaDB + PostgreSQL | `04-databases.sh` |
-| **Security** | UFW, Netdata, Fail2ban (configuration stricte) | `08-security.sh` |
+| **Databases** | Exemples Docker pour MySQL/PostgreSQL (pas d'installation) | `04-databases.sh` |
+| **Security** | UFW, Netdata (HTTPS), GeoIP2, Fail2ban | `08-security.sh` |
 | **Web Server** | Nginx + PHP + configuration sites | `05-web-server.sh` |
 | **Media Tools** | FFmpeg, codecs vidéo/audio | `06-media-tools.sh` |
 | **Gaming** | SteamCMD, LGSM | `07-gaming.sh` |
 | **Update Checker** | Système de vérification automatique des MAJ | `09-update-checker.sh` |
-| **Let's Encrypt** | Certificats SSL automatiques | `10-letsencrypt.sh` |
-| **Grafana Alloy** | Monitoring système via Grafana Cloud | `11-grafana-alloy.sh` |
+| **Let's Encrypt** | Certificats SSL automatiques + activation Netdata HTTPS | `10-letsencrypt.sh` |
+| **Grafana Alloy** | Monitoring système via Grafana Cloud (métriques + logs) | `11-grafana-alloy.sh` |
 
 ### Ordre d'exécution recommandé
 
 Les modules s'exécutent dans cet ordre pour respecter les dépendances :
 
 1. **00-domain-config** → Configure le domaine (requis par Nginx et Let's Encrypt)
-2. **01-base-system** → Crée l'utilisateur et configure le système de base
+2. **01-base-system** → Crée l'utilisateur, configure zsh et sudoers (ordre CRITIQUE)
 3. **02-dev-tools** → Installe les outils de développement
 4. **03-docker** → Installe Docker (dépend de l'utilisateur créé en 01)
-5. **04-databases** → Installe MySQL et PostgreSQL
-6. **08-security** → Configure UFW **AVANT** d'exposer des services
+5. **04-databases** → Fournit exemples Docker pour bases de données (informatif)
+6. **08-security** → Configure UFW, Netdata, GeoIP2 **AVANT** d'exposer des services
 7. **05-web-server** → Installe Nginx (après UFW pour sécurité)
 8. **06-media-tools** → Installe FFmpeg
 9. **07-gaming** → Installe SteamCMD et LGSM
 10. **09-update-checker** → Configure les vérifications automatiques
-11. **10-letsencrypt** → Génère les certificats SSL (dépend de 00 et 05)
-12. **11-grafana-alloy** → Configure le monitoring via Grafana Cloud
+11. **10-letsencrypt** → Génère les certificats SSL et active Netdata HTTPS
+12. **11-grafana-alloy** → Configure le monitoring avec permissions automatiques
 
 ## ⚙️ Configuration
 
@@ -154,16 +156,20 @@ L'utilisateur `seb` peut exécuter **sans mot de passe** :
 - Toutes les commandes `apt` (install, update, upgrade, etc.)
 - Toutes les commandes `docker`
 
+**IMPORTANT** : L'ordre des règles dans sudoers est critique. La règle `ALL=(ALL) ALL` doit venir AVANT les règles `NOPASSWD` pour que les permissions sans mot de passe fonctionnent correctement.
+
 Pour les autres commandes sudo, le mot de passe sera demandé.
 
 ### Ports Ouverts (UFW)
 
 Par défaut, les ports suivants seront ouverts :
-- `22` - SSH
+- `22` - SSH (limité à IP spécifique si configuré)
 - `80` - HTTP
 - `443` - HTTPS
-- `3000` - Node.js (dev)
-- `8080` - Applications web alternatives
+- `19999` - Netdata (limité à IP spécifique)
+- `3000-9000` - Développement (limités à IP spécifique)
+
+**Note** : Les ports des bases de données (3306, 5432) ne sont PAS ouverts car les bases de données utilisent Docker avec réseau interne.
 
 ## 💻 Utilisation
 
@@ -209,13 +215,34 @@ Par défaut, les ports suivants seront ouverts :
 #### Héberger un Site WordPress
 
 ```bash
-# Exemple avec Docker Compose
+# Exemple avec Docker Compose (bases de données déjà configurées via Docker)
 cd ~/GITRepos
 mkdir mon-wordpress
 cd mon-wordpress
 
-# Créer un docker-compose.yml
+# Créer un docker-compose.yml avec MySQL et WordPress
+# Voir exemples dans modules/04-databases.sh
 # Nginx est déjà installé pour le reverse proxy
+```
+
+#### Déployer des Bases de Données
+
+```bash
+# MySQL avec Docker (exemple fourni dans module 04)
+docker run -d \
+  --name mysql \
+  -e MYSQL_ROOT_PASSWORD=votre_password \
+  -p 3306:3306 \
+  -v /opt/docker/data/mysql:/var/lib/mysql \
+  mysql:8.0
+
+# PostgreSQL avec Docker
+docker run -d \
+  --name postgres \
+  -e POSTGRES_PASSWORD=votre_password \
+  -p 5432:5432 \
+  -v /opt/docker/data/postgres:/var/lib/postgresql/data \
+  postgres:16
 ```
 
 #### Créer un Serveur de Jeu
@@ -269,11 +296,15 @@ update-log
 ### Bonnes Pratiques Implémentées
 
 - ✅ Utilisateur non-root pour les opérations quotidiennes
-- ✅ Sudo limité aux commandes nécessaires (apt, docker)
-- ✅ Firewall UFW activé et configuré
+- ✅ Sudo limité aux commandes nécessaires (apt, docker) avec ordre correct
+- ✅ Firewall UFW activé et configuré de manière stricte
 - ✅ Services exposés uniquement sur les ports nécessaires
 - ✅ Pas de mots de passe en clair dans les scripts
 - ✅ Vérification automatique des mises à jour de sécurité
+- ✅ Netdata accessible uniquement via HTTPS avec Let's Encrypt
+- ✅ GeoIP2 pour analyse géographique des attaques
+- ✅ Bases de données isolées dans Docker (pas de ports exposés)
+- ✅ Grafana Alloy avec permissions automatiquement configurées
 
 ### Recommandations Supplémentaires
 

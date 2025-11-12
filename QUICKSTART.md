@@ -88,16 +88,17 @@ apt install -y git && git clone https://github.com/bikininjas/ubuntu_post_instal
 | Module | Temps estimé | Description |
 |--------|--------------|-------------|
 | **Domain Config** | 1 min | Configuration du domaine et hostname |
-| **Base System** | 2-3 min | Utilisateur, zsh, oh-my-zsh |
+| **Base System** | 2-3 min | Utilisateur, zsh, oh-my-zsh, sudoers |
 | **Dev Tools** | 5-7 min | Python 3.13, Node.js, Go, Terraform |
 | **Docker** | 2-3 min | Docker CE + Compose |
-| **Databases** | 3-4 min | MySQL/MariaDB + PostgreSQL |
-| **Security** | 1-2 min | UFW firewall (configuration stricte) |
+| **Databases** | 1 min | Exemples Docker (pas d'installation) |
+| **Security** | 2-3 min | UFW, Netdata (HTTPS), GeoIP2, Fail2ban |
 | **Web Server** | 2-3 min | Nginx + PHP |
 | **Media Tools** | 3-5 min | FFmpeg, codecs |
 | **Gaming** | 2-3 min | SteamCMD, LGSM |
 | **Update Checker** | 1 min | Système de mise à jour auto |
-| **Let's Encrypt** | 2-5 min | Certificats SSL automatiques |
+| **Let's Encrypt** | 2-5 min | Certificats SSL + activation Netdata HTTPS |
+| **Grafana Alloy** | 2-3 min | Monitoring Grafana Cloud (métriques + logs) |
 
 ## ✅ Après l'installation
 
@@ -215,25 +216,34 @@ Si vous ne savez pas quoi choisir, sélectionnez l'installation complète (optio
 ### Installation personnalisée
 Si vous voulez seulement certains composants :
 - **Développeur** : Base System + Dev Tools + Docker
-- **Serveur web** : Base System + Docker + Databases + Web Server
-- **Serveur de jeu** : Base System + Docker + Gaming
+- **Serveur web** : Base System + Docker + Databases (exemples) + Security + Web Server
+- **Serveur de jeu** : Base System + Docker + Gaming + Security
 - **Station multimédia** : Base System + Media Tools
+
+**Note** : Le module Databases fournit des exemples Docker mais n'installe pas directement MySQL/PostgreSQL.
 
 ### Sécurité
 - ✅ Ne partagez JAMAIS votre mot de passe
 - ✅ Utilisez un mot de passe fort (12+ caractères)
-- ✅ Le firewall sera automatiquement activé
+- ✅ Le firewall sera automatiquement activé avec règles strictes
 - ✅ Les mises à jour de sécurité seront surveillées
+- ✅ Netdata accessible uniquement via HTTPS
+- ✅ GeoIP2 pour analyse géographique des attaques
+- ✅ Bases de données isolées dans Docker (pas de ports exposés)
 
 ## 🔒 Ce qui est fait automatiquement
 
 - ✅ Configuration du domaine et hostname
 - ✅ Mise à jour complète du système
-- ✅ Création de l'utilisateur "seb"
-- ✅ Configuration des permissions sudo
+- ✅ Création de l'utilisateur "seb" avec sudoers configuré (ordre critique)
+- ✅ Configuration des permissions sudo sans mot de passe pour apt et docker
 - ✅ Installation de tous les outils sélectionnés
-- ✅ Configuration du firewall (SSH limité à votre IP)
+- ✅ Configuration du firewall strict (SSH limité à votre IP)
+- ✅ Configuration de Netdata avec bind sur 0.0.0.0 et restriction IP
+- ✅ Installation de GeoIP2 pour analyse des attaques
 - ✅ Génération des certificats SSL Let's Encrypt
+- ✅ Activation automatique de Netdata HTTPS
+- ✅ Configuration de Grafana Alloy avec permissions automatiques
 - ✅ Mise en place du système de mise à jour automatique
 - ✅ Nettoyage du cache apt
 
@@ -251,6 +261,11 @@ Le script applique une configuration de sécurité renforcée :
 - ✅ Port 443 (HTTPS) : Ouvert à tous
 - 🔒 Certificats SSL automatiques via Let's Encrypt
 
+### Monitoring Netdata
+- ✅ Port 19999 : Accessible UNIQUEMENT depuis IP autorisée
+- 🔒 HTTPS activé automatiquement après génération des certificats
+- 🌐 Accessible via `https://netdata.VOTRE_DOMAINE`
+
 ### Ports Gaming (Steam)
 - ✅ Port 27015 TCP/UDP : Steam SRCDS
 - ✅ Port 27005 UDP : Steam Client  
@@ -259,6 +274,11 @@ Le script applique une configuration de sécurité renforcée :
 ### Ports de Développement (3000-9000)
 - ✅ Accessibles UNIQUEMENT depuis l'IP `82.65.136.32`
 - ⚠️ Bloqués depuis toutes les autres IP
+
+### Bases de Données
+- 🔒 **Ports 3306 (MySQL) et 5432 (PostgreSQL) NON ouverts**
+- 🐳 Utilisation de Docker avec réseau interne pour isolation
+- ✅ Accès uniquement depuis conteneurs Docker ou localhost
 
 ## ⚠️ Important
 
